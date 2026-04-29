@@ -38,8 +38,10 @@
         measurementId: "G-YDZDHPFW6C"
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+         // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.database();
         const statusRef = db.ref('power_status');
 
