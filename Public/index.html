@@ -42,32 +42,14 @@
         measurementId: "G-YDZDHPFW6C"
         };
 
-         // Initialize Firebase
+          // Initialize Firebase
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         const db = firebase.database();
-        const statusRef = db.ref('power_status');
 
-        // অনলাইন-অফলাইন স্ট্যাটাস সেট করা
-        db.ref(".info/connected").on("value", (snap) => {
-        if (snap.val() === true) {
-            db.ref("current_status").onDisconnect().set({
-            status: "Offline",
-            time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
-            });
-            
-            db.ref("current_status").set({
-            status: "Online",
-            time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
-            });
-        }
-        });
-
-        // ডেটা রিড করা
-        // ১. বর্তমান অবস্থা (Live Status) রিড করা
-        const currentRef = db.ref('current_status');
-        currentRef.on('value', (snapshot) => {
+        // ১. বর্তমান লাইভ স্ট্যাটাস রিড করা (current_status থেকে)
+        db.ref('current_status').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 const statusText = document.getElementById('current-status');
@@ -85,8 +67,8 @@
             }
         });
 
-        // ২. শেষ ৫টি আপডেট (History) রিড করা
-        statusRef.limitToLast(5).on('value', (snapshot) => {
+        // ২. শেষ ৫টি ইতিহাস (History) রিড করা (power_status থেকে)
+        db.ref('power_status').limitToLast(5).on('value', (snapshot) => {
             const data = snapshot.val();
             const listElement = document.getElementById('log-list');
             listElement.innerHTML = '';
