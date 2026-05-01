@@ -19,6 +19,12 @@ db.ref(".info/connected").on("value", (snap) => {
   if (snap.val() === true) {
     console.log("সার্ভারের সাথে সংযুক্ত হয়েছে...");
 
+    // কানেক্ট হওয়া মাত্রই স্ট্যাটাস "Online" করে দিবে
+    currentRef.set({
+      status: "Online",
+      time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
+    });
+
     // পিসি বা নেট ডিসকানেক্ট হলে Firebase নিজে থেকেই এটি "Offline" করে দিবে
     currentRef.onDisconnect().set({
       status: "Offline",
@@ -27,11 +33,7 @@ db.ref(".info/connected").on("value", (snap) => {
         console.log("OnDisconnect চুক্তি সক্রিয় হয়েছে।");
     });
     
-    // কানেক্ট হওয়া মাত্রই স্ট্যাটাস "Online" করে দিবে
-    currentRef.set({
-      status: "Online",
-      time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
-    });
+    
   }
 });
 
