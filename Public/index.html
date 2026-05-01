@@ -65,10 +65,8 @@
         });
 
         // ডেটা রিড করা
-        // ১. বর্তমান অবস্থার (Live Status) জন্য আলাদা রেফারেন্স
+        // ১. বর্তমান অবস্থা (Live Status) রিড করা
         const currentRef = db.ref('current_status');
-
-        // ২. এটি সবসময় বর্তমান অবস্থা মনিটর করবে
         currentRef.on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -77,14 +75,29 @@
                 
                 statusText.innerText = data.status;
                 
-                // কালার চেঞ্জ করার লজিক
                 if(data.status === "Online") {
-                    statusText.style.color = "green";
-                    card.style.backgroundColor = "#f0fff4"; // Light Green
+                    statusText.className = "text-3xl font-extrabold uppercase text-green-600";
+                    card.className = "p-6 rounded-lg mb-6 bg-green-50";
                 } else {
-                    statusText.style.color = "red";
-                    card.style.backgroundColor = "#fff5f5"; // Light Red
+                    statusText.className = "text-3xl font-extrabold uppercase text-red-600";
+                    card.className = "p-6 rounded-lg mb-6 bg-red-50";
                 }
+            }
+        });
+
+        // ২. শেষ ৫টি আপডেট (History) রিড করা
+        statusRef.limitToLast(5).on('value', (snapshot) => {
+            const data = snapshot.val();
+            const listElement = document.getElementById('log-list');
+            listElement.innerHTML = '';
+            
+            if (data) {
+                Object.keys(data).reverse().forEach((key) => {
+                    const item = data[key];
+                    const li = document.createElement('li');
+                    li.innerText = `${item.time}: ${item.status}`;
+                    listElement.appendChild(li);
+                });
             }
         });
 
