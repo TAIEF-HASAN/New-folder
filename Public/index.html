@@ -49,36 +49,45 @@
         const db = firebase.database();
         const statusRef = db.ref('power_status');
 
-        // ডেটা রিড করা
-        statusRef.limitToLast(5).on('value', (snapshot) => {
-            const data = snapshot.val();
-            const listElement = document.getElementById('log-list');
-            listElement.innerHTML = '';
-            
-            let lastStatus = "";
-            
-            Object.keys(data).reverse().forEach((key, index) => {
-                const item = data[key];
-                if(index === 0) lastStatus = item.status;
-                
-                const li = document.createElement('li');
-                li.innerText = `${item.time}: ${item.status}`;
-                listElement.appendChild(li);
+        // অনলাইন-অফলাইন স্ট্যাটাস সেট করা
+        db.ref(".info/connected").on("value", (snap) => {
+        if (snap.val() === true) {
+            db.ref("current_status").onDisconnect().set({
+            status: "Offline",
+            time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
             });
-
-            // UI আপডেট
-            const statusText = document.getElementById('current-status');
-            const card = document.getElementById('status-card');
             
-            statusText.innerText = lastStatus;
-            if(lastStatus === "Online") {
-                statusText.classList.add('text-green-600');
-                card.classList.add('bg-green-50');
-            } else {
-                statusText.classList.add('text-red-600');
-                card.classList.add('bg-red-50');
+            db.ref("current_status").set({
+            status: "Online",
+            time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
+            });
+        }
+        });
+
+        // ডেটা রিড করা
+        // ১. বর্তমান অবস্থার (Live Status) জন্য আলাদা রেফারেন্স
+        const currentRef = db.ref('current_status');
+
+        // ২. এটি সবসময় বর্তমান অবস্থা মনিটর করবে
+        currentRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const statusText = document.getElementById('current-status');
+                const card = document.getElementById('status-card');
+                
+                statusText.innerText = data.status;
+                
+                // কালার চেঞ্জ করার লজিক
+                if(data.status === "Online") {
+                    statusText.style.color = "green";
+                    card.style.backgroundColor = "#f0fff4"; // Light Green
+                } else {
+                    statusText.style.color = "red";
+                    card.style.backgroundColor = "#fff5f5"; // Light Red
+                }
             }
         });
+
     </script>
 </body>
 </html>
