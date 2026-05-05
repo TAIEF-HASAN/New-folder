@@ -3,86 +3,159 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkini Power Monitor</title>
-    <!-- Tailwind CSS (সঠিক লিঙ্ক) -->
+    <title>Kalkini Power Monitor - Dashboard</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Firebase SDK (অবশ্যই এই লিঙ্কগুলো দিতে হবে) -->
+    <!-- Chart.js -->
+    <script src="https://jsdelivr.net"></script>
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
 </head>
 
-
-<body class="bg-gray-100 font-sans">
-    <div class="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-md text-center">
-        <h1 class="text-2xl font-bold mb-4 text-blue-600">কালকিনি পাওয়ার মনিটর</h1>
+<body class="bg-gray-50 font-sans pb-10">
+    <div class="max-w-2xl mx-auto px-4 mt-8">
+        <!-- Header -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800">কালকিনি পাওয়ার মনিটর</h1>
+            <p class="text-gray-500 mt-1">রিয়েল-টাইম বিদ্যুৎ পর্যবেক্ষণ ব্যবস্থা</p>
+        </div>
         
-        <div id="status-card" class="p-6 rounded-lg mb-6">
-            <p class="text-lg">বর্তমান অবস্থা:</p>
-            <p id="current-status" class="text-3xl font-extrabold uppercase">Loading...</p>
+        <!-- Live Status Card -->
+        <div id="status-card" class="p-8 rounded-2xl shadow-md text-center transition-all duration-500 mb-6">
+            <p class="text-sm font-medium uppercase tracking-wider text-gray-500 mb-2">বর্তমানে বিদ্যুৎ অবস্থা:</p>
+            <h2 id="current-status" class="text-5xl font-black uppercase tracking-tighter">Loading...</h2>
+            <p id="status-time" class="text-sm mt-3 text-gray-600 font-mono italic"></p>
         </div>
 
-        <div class="text-left mt-6">
-            <h2 class="font-semibold text-gray-700">শেষ ৫টি আপডেট:</h2>
-            <ul id="log-list" class="mt-2 space-y-2 text-sm text-gray-600"></ul>
+        <!-- Graph Section -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+            <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center italic">
+                📊 লোডশেডিং ট্রেন্ড (শেষ ১০টি ইভেন্ট)
+            </h3>
+            <canvas id="powerChart" height="150"></canvas>
+        </div>
+
+        <!-- History Table Section -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                <h3 class="font-bold text-gray-700">📜 সাম্প্রতিক ইতিহাস (Logs)</h3>
+                <span class="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded">Live</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="text-xs text-gray-400 uppercase bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3">সময়</th>
+                            <th class="px-6 py-3">অবস্থা</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body" class="text-sm divide-y divide-gray-100 text-gray-600">
+                        <!-- Data will load here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
     <script>
-        // আপনার Firebase Config (Firebase Console > Project Settings এ পাবেন)
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
-        apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
-        authDomain: "kalkinipowermonitor.firebaseapp.com",
-        databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "kalkinipowermonitor",
-        storageBucket: "kalkinipowermonitor.firebasestorage.app",
-        messagingSenderId: "119477481190",
-        appId: "1:119477481190:web:7f3404fcf0b87db388d527",
-        measurementId: "G-YDZDHPFW6C"
+            apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
+            authDomain: "kalkinipowermonitor.firebaseapp.com",
+            databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "kalkinipowermonitor",
+            storageBucket: "kalkinipowermonitor.firebasestorage.app",
+            messagingSenderId: "119477481190",
+            appId: "1:119477481190:web:7f3404fcf0b87db388d527",
+            measurementId: "G-YDZDHPFW6C"
         };
 
-          // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
 
-        // ১. বর্তমান লাইভ স্ট্যাটাস রিড করা (current_status থেকে)
+        // --- গ্রাফ সেটআপ ---
+        const ctx = document.getElementById('powerChart').getContext('2d');
+        const powerChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'পাওয়ার স্ট্যাটাস (1=অন, 0=অফ)',
+                    data: [],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    fill: true,
+                    stepped: true, // এটি গ্রাফকে স্কয়ার শেপ দিবে
+                    tension: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { min: 0, max: 1.2, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+
+        // ১. লাইভ স্ট্যাটাস আপডেট
         db.ref('current_status').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
                 const statusText = document.getElementById('current-status');
                 const card = document.getElementById('status-card');
+                const timeText = document.getElementById('status-time');
                 
                 statusText.innerText = data.status;
+                timeText.innerText = `শেষ আপডেট: ${data.time}`;
                 
                 if(data.status === "Online") {
-                    statusText.className = "text-3xl font-extrabold uppercase text-green-600";
-                    card.className = "p-6 rounded-lg mb-6 bg-green-50";
+                    statusText.className = "text-5xl font-black uppercase text-green-600";
+                    card.className = "p-8 rounded-2xl shadow-md text-center bg-green-50 border-2 border-green-200";
                 } else {
-                    statusText.className = "text-3xl font-extrabold uppercase text-red-600";
-                    card.className = "p-6 rounded-lg mb-6 bg-red-50";
+                    statusText.className = "text-5xl font-black uppercase text-red-600";
+                    card.className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
                 }
             }
         });
 
-        // ২. শেষ ৫টি ইতিহাস (History) রিড করা (power_status থেকে)
-        db.ref('power_status').limitToLast(5).on('value', (snapshot) => {
+        // ২. ইতিহাস ও গ্রাফ ডেটা আপডেট
+        db.ref('power_status').limitToLast(10).on('value', (snapshot) => {
             const data = snapshot.val();
-            const listElement = document.getElementById('log-list');
-            listElement.innerHTML = '';
+            const tableBody = document.getElementById('log-table-body');
+            tableBody.innerHTML = '';
             
+            let chartLabels = [];
+            let chartData = [];
+
             if (data) {
-                Object.keys(data).reverse().forEach((key) => {
+                const sortedKeys = Object.keys(data).reverse();
+                
+                sortedKeys.forEach((key) => {
                     const item = data[key];
-                    const li = document.createElement('li');
-                    li.innerText = `${item.time}: ${item.status}`;
-                    listElement.appendChild(li);
+                    
+                    // টেবিল তৈরি
+                    const row = `
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 font-mono text-xs">${item.time}</td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded text-xs font-bold ${item.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                    ${item.status}
+                                </span>
+                            </td>
+                        </tr>`;
+                    tableBody.innerHTML += row;
+
+                    // গ্রাফের জন্য ডেটা প্রসেস (Reverse Order for Chart)
+                    chartLabels.unshift(item.time.split(',')[1]); // শুধু সময়টুকু নিচ্ছে
+                    chartData.unshift(item.status === 'Online' ? 1 : 0);
                 });
+
+                // গ্রাফ আপডেট
+                powerChart.data.labels = chartLabels;
+                powerChart.data.datasets[0].data = chartData;
+                powerChart.update();
             }
         });
-
     </script>
 </body>
 </html>
