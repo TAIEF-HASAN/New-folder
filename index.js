@@ -1,80 +1,77 @@
-const admin = require('firebase-admin');
-const axios = require('axios');
+const admin = require("firebase-admin");
+const isOnline = require("is-online");
 
-// ১. সার্ভিস অ্যাকাউন্ট কী ফাইলের পাথ ঠিক রাখুন
+// আপনার ফায়ারবেস সার্ভিস অ্যাকাউন্ট কী (নিশ্চিত করুন path ঠিক আছে কিনা)
 const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app"  
+  databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app"// ফায়ারবেস URL 
 });
 
 const db = admin.database();
-const statusRef = db.ref("power_status"); // হিস্ট্রি বা লগের জন্য
-const currentRef = db.ref("current_status"); // বর্তমান অবস্থার জন্য
+const statusRef = db.ref("power_status");
+const logsRef = db.ref("power_logs"); // এখানে হিস্টোরি সেভ হবে
 
-let lastStatus = null; // সর্বশেষ অবস্থা মনে রাখার জন্য গ্লোবাল ভেরিয়েবল
+let lastStatus = null;
+let powerCutStartTime = null; // বিদ্যুৎ যাওয়ার সময় মনে রাখার জন্য
 
-// --- রিয়েল-টাইম অফলাইন ডিটেকশন (Firebase info/connected) ---
-db.ref(".info/connected").on("value", (snap) => {
-  if (snap.val() === true) {
-    console.log("সার্ভারের সাথে সংযুক্ত হয়েছে...");
+console.log("Monitoring started... 🚀");
 
-    currentRef.set({
-      status: "Online",
-      time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
-    });
+async function checkConnection() {
+  const online = await isOnline();
+  const currentStatus = online ? "Online" : "Offline";
 
-    // পিসি/ফোন অফলাইন হলে Firebase অটোমেটিক 'Offline' করে দিবে
-    currentRef.onDisconnect().set({
-      status: "Offline",
-      time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
-    });
-  }
-});
+  if (currentStatus !== lastStatus) {
+    const currentTime = new Date();
+    const timestamp = currentTime.toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' });
 
-// ৩. নিয়মিত চেক এবং ডুপ্লিকেট রোধ লজিক
-async function checkAndUpload() {
-    const timestamp = new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
-    let currentStatus = "";
+    console.log(`Status changed to: ${currentStatus} at ${timestamp}`);
 
-    try {
-        // ইন্টারনেট আছে কি না চেক করছে
-        await axios.get('https://google.com', { timeout: 5000 });
-        currentStatus = "Online";
+    if (currentStatus === "Offline") {
+      // বিদ্যুৎ চলে গেলে সময় রেকর্ড করি
+      powerCutStartTime = currentTime;
+      
+      // ফায়ারবেসে স্ট্যাটাস আপডেট
+      await statusRef.set({
+        status: "Offline",
+        last_updated: timestamp
+      });
+    } 
+    else if (currentStatus === "Online") {
+      let durationText = "N/A";
+
+      // যদি আগে বিদ্যুৎ যাওয়ার সময় রেকর্ড করা থাকে, তবে ব্যবধান বের করি
+      if (powerCutStartTime) {
+        const durationMs = currentTime - powerCutStartTime;
+        const totalMinutes = Math.floor(durationMs / (1000 * 60));
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
         
-        // যদি আগের স্ট্যাটাস আর বর্তমান স্ট্যাটাস আলাদা হয়, কেবল তখনই লগ পাঠাবে
-        if (currentStatus !== lastStatus) {
-            statusRef.push({
-                time: timestamp,
-                status: "Online",
-                location: "Kalkini"
-            });
-            console.log(`[${timestamp}] স্ট্যাটাস পরিবর্তন: Online (Log Sent)`);
-            lastStatus = currentStatus; // আপডেট করে রাখা হলো
-        } else {
-            // একই স্ট্যাটাস হলে লগ পাঠাবে না, শুধু কনসোলে দেখাবে
-            console.log(`[${timestamp}] বিদ্যুৎ আছে। (No duplicate log)`);
-        }
+        durationText = `${hours} ঘণ্টা ${mins} মিনিট`;
+        powerCutStartTime = null; // কাজ শেষ, রিসেট করে দিলাম
+      }
 
-    } catch (error) {
-        currentStatus = "Offline";
-        
-        // বিদ্যুৎ চলে গেলে যদি আপনার পিসি/ফোনে ইন্টারনেট থাকে (যেমন সিম কার্ড ডাটা)
-        if (currentStatus !== lastStatus) {
-            statusRef.push({
-                time: timestamp,
-                status: "Offline",
-                location: "Kalkini"
-            });
-            console.log(`[${timestamp}] বিদ্যুৎ নেই! (Offline Log Sent)`);
-            lastStatus = currentStatus;
-        } else {
-            console.log(`[${timestamp}] বিদ্যুৎ এখনো নেই। (Waiting for power...)`);
-        }
+      // ফায়ারবেসে বর্তমান স্ট্যাটাস আপডেট
+      await statusRef.set({
+        status: "Online",
+        last_updated: timestamp
+      });
+
+      // বিদ্যুৎ ফিরে আসার পর একটি লগ/হিস্টোরি সেভ করা
+      await logsRef.push({
+        status: "Power Returned",
+        time: timestamp,
+        duration: durationText,
+        unix_timestamp: Date.now()
+      });
+
+      console.log(`Loadshedding Duration: ${durationText}`);
     }
+
+    lastStatus = currentStatus;
+  }
 }
 
-// প্রতি ৫ মিনিট পরপর চেক করবে
-setInterval(checkAndUpload, 5 * 60 * 1000);
-checkAndUpload();
+// প্রতি ৩০ সেকেন্ড পরপর চেক করবে
+setInterval(checkConnection, 30000);
