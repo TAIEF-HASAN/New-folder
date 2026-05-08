@@ -49,6 +49,7 @@
                         <tr>
                             <th class="px-6 py-3">সময়</th>
                             <th class="px-6 py-3">অবস্থা</th>
+                            <th class="px-6 py-3">সময়কাল</th> <!-- নতুন কলাম -->
                         </tr>
                     </thead>
                     <tbody id="log-table-body" class="text-sm divide-y divide-gray-100 text-gray-600">
@@ -74,7 +75,6 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
 
-        // --- গ্রাফ সেটআপ ---
         const ctx = document.getElementById('powerChart').getContext('2d');
         const powerChart = new Chart(ctx, {
             type: 'line',
@@ -86,7 +86,7 @@
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                     fill: true,
-                    stepped: true, // এটি গ্রাফকে স্কয়ার শেপ দিবে
+                    stepped: true,
                     tension: 0
                 }]
             },
@@ -98,7 +98,6 @@
             }
         });
 
-        // ১. লাইভ স্ট্যাটাস আপডেট
         db.ref('current_status').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
@@ -119,7 +118,6 @@
             }
         });
 
-        // ২. ইতিহাস ও গ্রাফ ডেটা আপডেট
         db.ref('power_status').limitToLast(10).on('value', (snapshot) => {
             const data = snapshot.val();
             const tableBody = document.getElementById('log-table-body');
@@ -133,8 +131,8 @@
                 
                 sortedKeys.forEach((key) => {
                     const item = data[key];
+                    const duration = item.duration ? item.duration : '---'; // ডিউরেশন না থাকলে ড্যাশ দেখাবে
                     
-                    // টেবিল তৈরি
                     const row = `
                         <tr class="hover:bg-gray-50 transition-colors">
                             <td class="px-6 py-4 font-mono text-xs">${item.time}</td>
@@ -143,15 +141,14 @@
                                     ${item.status}
                                 </span>
                             </td>
+                            <td class="px-6 py-4 text-xs font-medium text-blue-600">${duration}</td>
                         </tr>`;
                     tableBody.innerHTML += row;
 
-                    // গ্রাফের জন্য ডেটা প্রসেস (Reverse Order for Chart)
-                    chartLabels.unshift(item.time.split(',')[1]); // শুধু সময়টুকু নিচ্ছে
+                    chartLabels.unshift(item.time.split(',')[1]);
                     chartData.unshift(item.status === 'Online' ? 1 : 0);
                 });
 
-                // গ্রাফ আপডেট
                 powerChart.data.labels = chartLabels;
                 powerChart.data.datasets[0].data = chartData;
                 powerChart.update();

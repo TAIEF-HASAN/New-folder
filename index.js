@@ -9,11 +9,14 @@ admin.initializeApp({
 });
 
 const db = admin.database();
-const statusRef = db.ref("power_status"); // হিস্ট্রি বা লগের জন্য
-const currentRef = db.ref("current_status"); // বর্তমান অবস্থার জন্য
+const statusRef = db.ref("power_status"); 
+const currentRef = db.ref("current_status"); 
 
 let lastStatus = null; 
-let powerCutStartTime = null; // লোডশেডিং শুরুর সময় রাখার জন্য
+let powerCutStartTime = null; 
+
+// টাইম ফরম্যাটের জন্য একটি কমন ফাংশন (যাতে সব জায়গায় একই থাকে)
+const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
 // --- রিয়েল-টাইম অফলাইন ডিটেকশন ---
 db.ref(".info/connected").on("value", (snap) => {
@@ -22,29 +25,29 @@ db.ref(".info/connected").on("value", (snap) => {
 
     currentRef.set({
       status: "Online",
-      time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
+      time: getBDTime()
     });
 
     currentRef.onDisconnect().set({
       status: "Offline",
-      time: new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"})
+      time: getBDTime()
     });
   }
 });
 
 async function checkAndUpload() {
     const now = new Date();
-    const timestamp = now.toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
+    const timestamp = getBDTime();
     let currentStatus = "";
 
     try {
+        // গুগলকে পিং করে ইন্টারনেট/বিদ্যুৎ চেক
         await axios.get('https://google.com', { timeout: 5000 });
         currentStatus = "Online";
         
         if (currentStatus !== lastStatus) {
             let durationText = "N/A";
 
-            // যদি আগে বিদ্যুৎ যাওয়ার সময় রেকর্ড করা থাকে
             if (powerCutStartTime) {
                 const durationMs = now - powerCutStartTime;
                 const totalMinutes = Math.floor(durationMs / (1000 * 60));
@@ -52,13 +55,14 @@ async function checkAndUpload() {
                 const mins = totalMinutes % 60;
                 
                 durationText = hours > 0 ? `${hours} ঘণ্টা ${mins} মিনিট` : `${mins} মিনিট`;
-                powerCutStartTime = null; // রিসেট
+                powerCutStartTime = null; 
             }
 
-            statusRef.push({
+            // যদি প্রথমবার রান করার সময় 'Online' পায়, তবে 'N/A' দেখাবে
+            await statusRef.push({
                 time: timestamp,
                 status: "Online",
-                duration: durationText, // নতুন ফিল্ড: কতক্ষণ ছিল না
+                duration: durationText,
                 location: "Kalkini"
             });
 
@@ -72,9 +76,9 @@ async function checkAndUpload() {
         currentStatus = "Offline";
         
         if (currentStatus !== lastStatus) {
-            powerCutStartTime = now; // বিদ্যুৎ যাওয়ার সময় সেভ করলাম
+            powerCutStartTime = now; 
 
-            statusRef.push({
+            await statusRef.push({
                 time: timestamp,
                 status: "Offline",
                 location: "Kalkini"
@@ -87,6 +91,6 @@ async function checkAndUpload() {
     }
 }
 
-// আপনার আগের মতো ৫ মিনিট পর পর চেক
+// প্রতি ৫ মিনিট পরপর চেক
 setInterval(checkAndUpload, 5 * 60 * 1000);
 checkAndUpload();
