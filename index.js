@@ -5,33 +5,26 @@ const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app"  
+  databaseURL: "https://firebasedatabase.app"  
 });
 
 const db = admin.database();
 const statusRef = db.ref("power_status"); 
 const currentRef = db.ref("current_status"); 
+const summaryRef = db.ref("daily_summary"); // নতুন নোড
 
 let lastStatus = null; 
 let powerCutStartTime = null; 
+let totalOffCount = 0; // সারাদিনে কতবার বিদ্যুৎ গেল
+let totalOffDurationMs = 0; // মোট কতক্ষণ ছিল না (মিলি-সেকেন্ডে)
 
-// টাইম ফরম্যাটের জন্য একটি কমন ফাংশন (যাতে সব জায়গায় একই থাকে)
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
 // --- রিয়েল-টাইম অফলাইন ডিটেকশন ---
 db.ref(".info/connected").on("value", (snap) => {
   if (snap.val() === true) {
-    console.log("সার্ভারের সাথে সংযুক্ত হয়েছে...");
-
-    currentRef.set({
-      status: "Online",
-      time: getBDTime()
-    });
-
-    currentRef.onDisconnect().set({
-      status: "Offline",
-      time: getBDTime()
-    });
+    currentRef.set({ status: "Online", time: getBDTime() });
+    currentRef.onDisconnect().set({ status: "Offline", time: getBDTime() });
   }
 });
 
@@ -41,7 +34,6 @@ async function checkAndUpload() {
     let currentStatus = "";
 
     try {
-        // গুগলকে পিং করে ইন্টারনেট/বিদ্যুৎ চেক
         await axios.get('https://google.com', { timeout: 5000 });
         currentStatus = "Online";
         
@@ -50,47 +42,55 @@ async function checkAndUpload() {
 
             if (powerCutStartTime) {
                 const durationMs = now - powerCutStartTime;
+                totalOffDurationMs += durationMs; // মোট সময়ে যোগ হলো
+                
                 const totalMinutes = Math.floor(durationMs / (1000 * 60));
                 const hours = Math.floor(totalMinutes / 60);
                 const mins = totalMinutes % 60;
-                
                 durationText = hours > 0 ? `${hours} ঘণ্টা ${mins} মিনিট` : `${mins} মিনিট`;
                 powerCutStartTime = null; 
             }
 
-            // যদি প্রথমবার রান করার সময় 'Online' পায়, তবে 'N/A' দেখাবে
-            await statusRef.push({
-                time: timestamp,
-                status: "Online",
-                duration: durationText,
-                location: "Kalkini"
-            });
-
-            console.log(`[${timestamp}] বিদ্যুৎ এসেছে! সময়কাল: ${durationText}`);
+            statusRef.push({ time: timestamp, status: "Online", duration: durationText, location: "Kalkini" });
+            console.log(`[${timestamp}] বিদ্যুৎ এসেছে!`);
             lastStatus = currentStatus;
-        } else {
-            console.log(`[${timestamp}] বিদ্যুৎ আছে। (No duplicate log)`);
         }
 
     } catch (error) {
         currentStatus = "Offline";
-        
         if (currentStatus !== lastStatus) {
             powerCutStartTime = now; 
+            totalOffCount++; // কতবার গেল তা গুনছি
 
-            await statusRef.push({
-                time: timestamp,
-                status: "Offline",
-                location: "Kalkini"
-            });
+            statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
             console.log(`[${timestamp}] বিদ্যুৎ নেই!`);
             lastStatus = currentStatus;
-        } else {
-            console.log(`[${timestamp}] বিদ্যুৎ এখনো নেই।`);
         }
     }
 }
 
-// প্রতি ৫ মিনিট পরপর চেক
+// --- প্রতিদিন রাত ১১:৫৯ মিনিটে সামারি সেভ করার লজিক ---
+setInterval(() => {
+    const now = new Date();
+    // রাত ১১:৫৯ মিনিটে এটি রান হবে
+    if (now.getHours() === 23 && now.getMinutes() === 59) {
+        const totalMinutes = Math.floor(totalOffDurationMs / (1000 * 60));
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+
+        summaryRef.child(now.toLocaleDateString("en-BD")).set({
+            date: now.toLocaleDateString("en-BD"),
+            off_count: totalOffCount,
+            total_duration: `${hours} ঘণ্টা ${mins} মিনিট`,
+            timestamp: Date.now()
+        });
+
+        // নতুন দিনের জন্য রিসেট
+        totalOffCount = 0;
+        totalOffDurationMs = 0;
+        console.log("Daily Summary Sent to Firebase!");
+    }
+}, 60000); // প্রতি মিনিটে চেক করবে সময় হয়েছে কি না
+
 setInterval(checkAndUpload, 5 * 60 * 1000);
 checkAndUpload();
