@@ -119,48 +119,56 @@
         });
 
         db.ref('power_status').limitToLast(10).on('value', (snapshot) => {
-            const data = snapshot.val();
-            const tableBody = document.getElementById('log-table-body');
-            tableBody.innerHTML = '';
+        const data = snapshot.val();
+        const tableBody = document.getElementById('log-table-body');
+        tableBody.innerHTML = '';
+        
+        let chartLabels = [];
+        let chartData = [];
+
+        if (data) {
+            const sortedKeys = Object.keys(data).reverse();
             
-            let chartLabels = [];
-            let chartData = [];
-
-            if (data) {
-                const sortedKeys = Object.keys(data).reverse();
+            sortedKeys.forEach((key) => {
+                const item = data[key];
                 
-                sortedKeys.forEach((key) => {
-                    const item = data[key];
-                    const duration = item.duration ? item.duration : '---'; // ডিউরেশন না থাকলে ড্যাশ দেখাবে
-                    
-                    const row = `
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 font-mono text-xs">${item.time}</td>
-                            <td class="px-6 py-4">
-                                <span class="px-2 py-1 rounded text-xs font-bold ${item.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                                    ${item.status}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 text-xs font-medium text-blue-600">${duration}</td>
-                        </tr>`;
-                    tableBody.innerHTML += row;
+                // ১. সেফটি চেক: যদি item বা item.time না থাকে তবে এটি স্কিপ করবে
+                if (!item || !item.time) return;
 
-                    // গ্রাফের জন্য ডেটা প্রসেস (Safe Check সহ)
-                    if (item.time && typeof item.time === 'string' && item.time.includes(',')) {
-                        // কমা দিয়ে ভাগ করে ২য় অংশটি (সময়) নিচ্ছে
-                        chartLabels.unshift(item.time.split(',')[1].trim()); 
-                    } else {
-                        chartLabels.unshift(item.time || "N/A"); 
-                    }
-                    chartData.unshift(item.status === 'Online' ? 1 : 0);
+                const duration = item.duration ? item.duration : '---';
+                
+                // ২. টেবিল রো তৈরি
+                const row = `
+                    <tr class="hover:bg-gray-50 transition-colors">
+                        <td class="px-6 py-4 font-mono text-xs">${item.time}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-xs font-bold ${item.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                ${item.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-xs font-medium text-blue-600">${duration}</td>
+                    </tr>`;
+                tableBody.innerHTML += row;
 
-                });
+                // ৩. গ্রাফের জন্য সেফ টাইম স্প্লিট
+                let timeOnly = "N/A";
+                if (typeof item.time === 'string' && item.time.includes(',')) {
+                    timeOnly = item.time.split(',')[1].trim(); 
+                } else {
+                    timeOnly = item.time;
+                }
 
-                powerChart.data.labels = chartLabels;
-                powerChart.data.datasets[0].data = chartData;
-                powerChart.update();
-            }
-        });
+                chartLabels.unshift(timeOnly);
+                chartData.unshift(item.status === 'Online' ? 1 : 0);
+            });
+
+            // গ্রাফ আপডেট
+            powerChart.data.labels = chartLabels;
+            powerChart.data.datasets[0].data = chartData;
+            powerChart.update();
+        }
+    });
+
     </script>
 </body>
 </html>
