@@ -1,77 +1,79 @@
 const admin = require("firebase-admin");
 const isOnline = require("is-online");
 
-// আপনার ফায়ারবেস সার্ভিস অ্যাকাউন্ট কী (নিশ্চিত করুন path ঠিক আছে কিনা)
+// আপনার সার্ভিস অ্যাকাউন্ট কী ফাইলের পাথ
 const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app"// ফায়ারবেস URL 
+  databaseURL: "https://YOUR_PROJECT_://firebaseio.com" // আপনার ফায়ারবেস URL নিশ্চিত করুন
 });
 
 const db = admin.database();
 const statusRef = db.ref("power_status");
-const logsRef = db.ref("power_logs"); // এখানে হিস্টোরি সেভ হবে
+const logsRef = db.ref("power_logs");
 
 let lastStatus = null;
-let powerCutStartTime = null; // বিদ্যুৎ যাওয়ার সময় মনে রাখার জন্য
+let powerCutStartTime = null;
 
 console.log("Monitoring started... 🚀");
 
 async function checkConnection() {
-  const online = await isOnline();
-  const currentStatus = online ? "Online" : "Offline";
+  try {
+    const online = await isOnline();
+    const currentStatus = online ? "Online" : "Offline";
 
-  if (currentStatus !== lastStatus) {
-    const currentTime = new Date();
-    const timestamp = currentTime.toLocaleString('bn-BD', { timeZone: 'Asia/Dhaka' });
-
-    console.log(`Status changed to: ${currentStatus} at ${timestamp}`);
-
-    if (currentStatus === "Offline") {
-      // বিদ্যুৎ চলে গেলে সময় রেকর্ড করি
-      powerCutStartTime = currentTime;
-      
-      // ফায়ারবেসে স্ট্যাটাস আপডেট
-      await statusRef.set({
-        status: "Offline",
-        last_updated: timestamp
+    // স্ট্যাটাস পরিবর্তন হলেই কেবল কাজ করবে
+    if (currentStatus !== lastStatus) {
+      const currentTime = new Date();
+      // আপনার UI-এর সাথে মিল রেখে টাইম ফরম্যাট
+      const timestamp = currentTime.toLocaleString('en-US', { 
+        hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true,
+        month: 'numeric', day: 'numeric', year: 'numeric'
       });
-    } 
-    else if (currentStatus === "Online") {
-      let durationText = "N/A";
 
-      // যদি আগে বিদ্যুৎ যাওয়ার সময় রেকর্ড করা থাকে, তবে ব্যবধান বের করি
-      if (powerCutStartTime) {
-        const durationMs = currentTime - powerCutStartTime;
-        const totalMinutes = Math.floor(durationMs / (1000 * 60));
-        const hours = Math.floor(totalMinutes / 60);
-        const mins = totalMinutes % 60;
+      console.log(`Status changed: ${currentStatus} at ${timestamp}`);
+
+      if (currentStatus === "Offline") {
+        powerCutStartTime = currentTime; // বিদ্যুৎ যাওয়ার সময় সেভ
         
-        durationText = `${hours} ঘণ্টা ${mins} মিনিট`;
-        powerCutStartTime = null; // কাজ শেষ, রিসেট করে দিলাম
+        await statusRef.set({
+          status: "OFFLINE", // আপনার UI-তে বড় হাতের অক্ষরে ছিল
+          last_updated: timestamp
+        });
+      } 
+      else if (currentStatus === "Online") {
+        let durationText = "0 মিনিট";
+
+        if (powerCutStartTime) {
+          const durationMs = currentTime - powerCutStartTime;
+          const totalMinutes = Math.floor(durationMs / (1000 * 60));
+          const hours = Math.floor(totalMinutes / 60);
+          const mins = totalMinutes % 60;
+          
+          durationText = hours > 0 ? `${hours} ঘণ্টা ${mins} মিনিট` : `${mins} মিনিট`;
+          powerCutStartTime = null;
+        }
+
+        await statusRef.set({
+          status: "ONLINE",
+          last_updated: timestamp
+        });
+
+        // লগ সেভ করা (UI-তে লগের জন্য)
+        await logsRef.push({
+          time: timestamp,
+          status: "Power Returned",
+          duration: durationText
+        });
       }
 
-      // ফায়ারবেসে বর্তমান স্ট্যাটাস আপডেট
-      await statusRef.set({
-        status: "Online",
-        last_updated: timestamp
-      });
-
-      // বিদ্যুৎ ফিরে আসার পর একটি লগ/হিস্টোরি সেভ করা
-      await logsRef.push({
-        status: "Power Returned",
-        time: timestamp,
-        duration: durationText,
-        unix_timestamp: Date.now()
-      });
-
-      console.log(`Loadshedding Duration: ${durationText}`);
+      lastStatus = currentStatus;
     }
-
-    lastStatus = currentStatus;
+  } catch (error) {
+    console.error("Error checking connection:", error);
   }
 }
 
-// প্রতি ৩০ সেকেন্ড পরপর চেক করবে
+// প্রতি ৩০ সেকেন্ড পরপর চেক
 setInterval(checkConnection, 30000);
