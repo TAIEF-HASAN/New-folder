@@ -4,57 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kalkini Power Monitor - Dashboard</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script> 
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
+    <script src="https://jsdelivr.net"></script>
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
 </head>
-
 <body class="bg-gray-50 font-sans pb-10">
     <div class="max-w-2xl mx-auto px-4 mt-8">
-        <!-- Header -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center mb-6">
             <h1 class="text-3xl font-bold text-gray-800">কালকিনি পাওয়ার মনিটর</h1>
             <p class="text-gray-500 mt-1">রিয়েল-টাইম বিদ্যুৎ পর্যবেক্ষণ ব্যবস্থা</p>
         </div>
-        
-        <!-- Live Status Card -->
         <div id="status-card" class="p-8 rounded-2xl shadow-md text-center transition-all duration-500 mb-6">
             <p class="text-sm font-medium uppercase tracking-wider text-gray-500 mb-2">বর্তমানে বিদ্যুৎ অবস্থা:</p>
             <h2 id="current-status" class="text-5xl font-black uppercase tracking-tighter">Loading...</h2>
             <p id="status-time" class="text-sm mt-3 text-gray-600 font-mono italic"></p>
         </div>
-
-        <!-- Graph Section -->
         <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center italic">
-                📊 লোডশেডিং ট্রেন্ড (শেষ ১০টি ইভেন্ট)
-            </h3>
+            <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center italic">📊 লোডশেডিং ট্রেন্ড (শেষ ১০টি ইভেন্ট)</h3>
             <canvas id="powerChart" height="150"></canvas>
         </div>
-
-        <!-- History Table Section -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
                 <h3 class="font-bold text-gray-700">📜 সাম্প্রতিক ইতিহাস (Logs)</h3>
                 <span class="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded">Live</span>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left">
+                <table class="w-full text-left border-collapse">
                     <thead class="text-xs text-gray-400 uppercase bg-gray-50">
                         <tr>
                             <th class="px-6 py-3">সময়</th>
                             <th class="px-6 py-3">অবস্থা</th>
-                            <th class="px-6 py-3">সময়কাল</th> <!-- নতুন কলাম -->
+                            <th class="px-6 py-3">সময়কাল</th>
                         </tr>
                     </thead>
-                    <tbody id="log-table-body" class="text-sm divide-y divide-gray-100 text-gray-600">
-                        <!-- Data will load here -->
-                    </tbody>
+                    <tbody id="log-table-body" class="text-sm divide-y divide-gray-100 text-gray-600"></tbody>
                 </table>
             </div>
         </div>
@@ -63,112 +47,56 @@
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
-            authDomain: "kalkinipowermonitor.firebaseapp.com",
-            databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
+            authDomain: "://firebaseapp.com",
+            databaseURL: "https://firebasedatabase.app",
             projectId: "kalkinipowermonitor",
             storageBucket: "kalkinipowermonitor.firebasestorage.app",
             messagingSenderId: "119477481190",
-            appId: "1:119477481190:web:7f3404fcf0b87db388d527",
-            measurementId: "G-YDZDHPFW6C"
+            appId: "1:119477481190:web:7f3404fcf0b87db388d527"
         };
-
-        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
         const ctx = document.getElementById('powerChart').getContext('2d');
         const powerChart = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'পাওয়ার স্ট্যাটাস (1=অন, 0=অফ)',
-                    data: [],
-                    borderColor: '#3b82f6',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    fill: true,
-                    stepped: true,
-                    tension: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    y: { min: 0, max: 1.2, ticks: { stepSize: 1 } }
-                }
-            }
+            data: { labels: [], datasets: [{ label: 'পাওয়ার স্ট্যাটাস (1=অন, 0=অফ)', data: [], borderColor: '#3b82f6', stepped: true }] },
+            options: { scales: { y: { min: 0, max: 1.2 } } }
         });
 
-        db.ref('current_status').on('value', (snapshot) => {
-            const data = snapshot.val();
+        db.ref('current_status').on('value', (snap) => {
+            const data = snap.val();
             if (data) {
-                const statusText = document.getElementById('current-status');
-                const card = document.getElementById('status-card');
-                const timeText = document.getElementById('status-time');
-                
-                statusText.innerText = data.status;
-                timeText.innerText = `শেষ আপডেট: ${data.time}`;
-                
-                if(data.status === "Online") {
-                    statusText.className = "text-5xl font-black uppercase text-green-600";
-                    card.className = "p-8 rounded-2xl shadow-md text-center bg-green-50 border-2 border-green-200";
-                } else {
-                    statusText.className = "text-5xl font-black uppercase text-red-600";
-                    card.className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
-                }
+                document.getElementById('current-status').innerText = data.status;
+                document.getElementById('status-time').innerText = `শেষ আপডেট: ${data.time}`;
+                document.getElementById('status-card').className = data.status === "Online" ? "p-8 rounded-2xl shadow-md text-center bg-green-50 border-2 border-green-200" : "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
+                document.getElementById('current-status').className = data.status === "Online" ? "text-5xl font-black text-green-600" : "text-5xl font-black text-red-600";
             }
         });
 
-        db.ref('power_status').limitToLast(10).on('value', (snapshot) => {
-        const data = snapshot.val();
-        const tableBody = document.getElementById('log-table-body');
-        tableBody.innerHTML = '';
-        
-        let chartLabels = [];
-        let chartData = [];
-
-        if (data) {
-            const sortedKeys = Object.keys(data).reverse();
-            
-            sortedKeys.forEach((key) => {
-                const item = data[key];
-                
-                // ১. সেফটি চেক: যদি item বা item.time না থাকে তবে এটি স্কিপ করবে
-                if (!item || !item.time) return;
-
-                const duration = item.duration ? item.duration : '---';
-                
-                // ২. টেবিল রো তৈরি
-                const row = `
-                    <tr class="hover:bg-gray-50 transition-colors">
+        db.ref('power_status').limitToLast(10).on('value', (snap) => {
+            const data = snap.val();
+            const tableBody = document.getElementById('log-table-body');
+            tableBody.innerHTML = '';
+            let labels = [], points = [];
+            if (data) {
+                Object.keys(data).reverse().forEach(key => {
+                    const item = data[key];
+                    if (!item || !item.time) return;
+                    const row = `<tr>
                         <td class="px-6 py-4 font-mono text-xs">${item.time}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 rounded text-xs font-bold ${item.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
-                                ${item.status}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-xs font-medium text-blue-600">${duration}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${item.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${item.status}</span></td>
+                        <td class="px-6 py-4 text-xs font-medium text-blue-600">${item.duration || '---'}</td>
                     </tr>`;
-                tableBody.innerHTML += row;
-
-                // ৩. গ্রাফের জন্য সেফ টাইম স্প্লিট
-                let timeOnly = "N/A";
-                if (typeof item.time === 'string' && item.time.includes(',')) {
-                    timeOnly = item.time.split(',')[1].trim(); 
-                } else {
-                    timeOnly = item.time;
-                }
-
-                chartLabels.unshift(timeOnly);
-                chartData.unshift(item.status === 'Online' ? 1 : 0);
-            });
-
-            // গ্রাফ আপডেট
-            powerChart.data.labels = chartLabels;
-            powerChart.data.datasets[0].data = chartData;
-            powerChart.update();
-        }
-    });
-
+                    tableBody.innerHTML += row;
+                    labels.unshift(item.time.toString()); // No split used here
+                    points.unshift(item.status === 'Online' ? 1 : 0);
+                });
+                powerChart.data.labels = labels;
+                powerChart.data.datasets[0].data = points;
+                powerChart.update();
+            }
+        });
     </script>
 </body>
 </html>
