@@ -145,8 +145,15 @@
                         </tr>`;
                     tableBody.innerHTML += row;
 
-                    chartLabels.unshift(item.time.split(',')[1]);
+                    // গ্রাফের জন্য ডেটা প্রসেস (Safe Check সহ)
+                    if (item.time && typeof item.time === 'string' && item.time.includes(',')) {
+                        // কমা দিয়ে ভাগ করে ২য় অংশটি (সময়) নিচ্ছে
+                        chartLabels.unshift(item.time.split(',')[1].trim()); 
+                    } else {
+                        chartLabels.unshift(item.time || "N/A"); 
+                    }
                     chartData.unshift(item.status === 'Online' ? 1 : 0);
+
                 });
 
                 powerChart.data.labels = chartLabels;
