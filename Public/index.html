@@ -10,35 +10,46 @@
     <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
 </head>
 <body class="bg-gray-50 font-sans pb-10">
-    <div class="max-w-2xl mx-auto px-4 mt-8">
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 text-center mb-6">
-            <h1 class="text-3xl font-bold text-gray-800">কালকিনি পাওয়ার মনিটর</h1>
-            <p class="text-gray-500 mt-1">রিয়েল-টাইম বিদ্যুৎ পর্যবেক্ষণ ব্যবস্থা</p>
+    <div class="max-w-2xl mx-auto px-4 mt-6">
+        <!-- হেডার সেকশন -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 text-center mb-5">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">কালকিনি পাওয়ার মনিটর</h1>
+            <p class="text-gray-500 text-xs mt-1">রিয়েল-টাইম বিদ্যুৎ পর্যবেক্ষণ ব্যবস্থা</p>
         </div>
-        <div id="status-card" class="p-8 rounded-2xl shadow-md text-center transition-all duration-500 mb-6">
-            <p class="text-sm font-medium uppercase tracking-wider text-gray-500 mb-2">বর্তমানে বিদ্যুৎ অবস্থা:</p>
-            <h2 id="current-status" class="text-5xl font-black uppercase tracking-tighter">Loading...</h2>
-            <p id="status-time" class="text-sm mt-3 text-gray-600 font-mono italic"></p>
+
+        <!-- বর্তমান স্ট্যাটাস কার্ড -->
+        <div id="status-card" class="p-6 md:p-8 rounded-3xl shadow-md text-center transition-all duration-500 mb-6">
+            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1">বর্তমানে বিদ্যুৎ অবস্থা:</p>
+            <h2 id="current-status" class="text-5xl md:text-6xl font-black uppercase tracking-tighter">Loading...</h2>
+            <p id="status-time" class="text-[11px] mt-3 text-gray-600 font-mono italic opacity-80"></p>
         </div>
-        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <h3 class="text-lg font-bold text-gray-700 mb-4 flex items-center italic">📊 লোডশেডিং ট্রেন্ড (শেষ ১০টি ইভেন্ট)</h3>
-            <canvas id="powerChart" height="150"></canvas>
+
+        <!-- গ্রাফ সেকশন -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+            <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center italic">📊 লোডশেডিং ট্রেন্ড (শেষ ১০টি ইভেন্ট)</h3>
+            <div class="h-[180px] w-full">
+                <canvas id="powerChart"></canvas>
+            </div>
         </div>
+
+        <!-- ইতিহাস টেবিল (ফোনের জন্য অপ্টিমাইজড) -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="font-bold text-gray-700">📜 সাম্প্রতিক ইতিহাস (Logs)</h3>
-                <span class="text-xs text-blue-600 font-semibold bg-blue-50 px-2 py-1 rounded">Live</span>
+                <h3 class="text-sm font-bold text-gray-700">📜 সাম্প্রতিক ইতিহাস (Logs)</h3>
+                <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Live</span>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="text-xs text-gray-400 uppercase bg-gray-50">
+            <div class="overflow-x-auto w-full">
+                <table class="w-full text-left border-collapse min-w-[320px]">
+                    <thead class="text-[10px] text-gray-400 uppercase bg-gray-50/50">
                         <tr>
-                            <th class="px-6 py-3">সময়</th>
-                            <th class="px-6 py-3">অবস্থা</th>
-                            <th class="px-6 py-3">সময়কাল</th>
+                            <th class="px-4 py-3 font-semibold">সময়</th>
+                            <th class="px-4 py-3 font-semibold">অবস্থা</th>
+                            <th class="px-4 py-3 font-semibold text-right">সময়কাল</th>
                         </tr>
                     </thead>
-                    <tbody id="log-table-body" class="text-sm divide-y divide-gray-100 text-gray-600"></tbody>
+                    <tbody id="log-table-body" class="text-[11px] divide-y divide-gray-50 text-gray-600">
+                        <!-- জাভাস্ক্রিপ্ট দিয়ে রো এখানে আসবে -->
+                    </tbody>
                 </table>
             </div>
         </div>
@@ -127,10 +138,14 @@
                 }
 
                 const row = `<tr>
-                    <td class="px-6 py-4 font-mono text-xs">${currentItem.time}</td>
-                    <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${currentItem.status}</span></td>
-                    <td class="px-6 py-4 text-xs font-bold ${currentItem.status === 'Online' ? 'text-red-600' : 'text-gray-400'}">
-                        ${currentItem.status === 'Online' ? 'লোডশেডিং: ' + duration : '---'}
+                    <td class="px-4 py-4 font-mono text-[10px] leading-tight text-gray-500">${currentItem.time}</td>
+                    <td class="px-4 py-4">
+                        <span class="inline-block px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            ${currentItem.status}
+                        </span>
+                    </td>
+                    <td class="px-4 py-4 text-[10px] font-bold text-right ${currentItem.status === 'Online' ? 'text-red-500' : 'text-gray-300'}">
+                        ${currentItem.status === 'Online' ? duration : '---'}
                     </td>
                 </tr>`;
                 tableBody.innerHTML += row;
