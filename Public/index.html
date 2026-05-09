@@ -74,49 +74,55 @@
             }
         });
 
-        // সময়কাল ক্যালকুলেট করার ফাংশন
+        // সময়কাল ক্যালকুলেট করার উন্নত ফাংশন
         function calculateDuration(startTimeStr, endTimeStr) {
             if (!startTimeStr || !endTimeStr) return "---";
             const start = new Date(startTimeStr);
             const end = new Date(endTimeStr);
+            if (isNaN(start) || isNaN(end)) return "---";
+            
             const diffMs = Math.abs(end - start);
             const diffMins = Math.round(diffMs / 60000);
             
+            if (diffMins < 1) return "কয়েক সেকেন্ড";
             if (diffMins < 60) return `${diffMins} মিনিট`;
             const hours = Math.floor(diffMins / 60);
             const mins = diffMins % 60;
             return `${hours} ঘণ্টা ${mins} মিনিট`;
         }
 
-        db.ref('power_status').limitToLast(11).on('value', (snap) => {
+        db.ref('power_status').limitToLast(10).on('value', (snap) => {
             const data = snap.val();
             const tableBody = document.getElementById('log-table-body');
             tableBody.innerHTML = '';
             let labels = [], points = [];
             
             if (data) {
-                const keys = Object.keys(data);
+                const keys = Object.keys(data); // সময় অনুযায়ী সিরিয়াল কি (Key)
                 const items = keys.map(key => data[key]);
 
-                // লুপ চালিয়ে প্রতিটি রো এর জন্য সময়কাল বের করা
+                // লুপটি উল্টো দিক থেকে ঘুরবে যাতে নতুন ডাটা উপরে থাকে
                 for (let i = items.length - 1; i >= 0; i--) {
                     const currentItem = items[i];
-                    const nextItem = items[i + 1]; // যেহেতু রিভার্স দেখাচ্ছি, পরের আইটেমটি আসলে সময়ের হিসেবে পরের
+                    const previousItem = items[i - 1]; // আগের ডাটা থেকে সময়কাল বের হবে
                     
                     let duration = "---";
-                    if (nextItem) {
-                        duration = calculateDuration(currentItem.time, nextItem.time);
+                    if (previousItem) {
+                        duration = calculateDuration(previousItem.time, currentItem.time);
                     }
 
-                    const row = `<tr>
-                        <td class="px-6 py-4 font-mono text-xs">${currentItem.time}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${currentItem.status}</span></td>
-                        <td class="px-6 py-4 text-xs font-medium text-blue-600">${duration}</td>
-                    </tr>`;
-                    
-                    tableBody.innerHTML += row;
-                    labels.unshift(currentItem.time);
-                    points.unshift(currentItem.status === 'Online' ? 1 : 0);
+                    // Undefined ডাটা চেক
+                    if (currentItem.time && currentItem.status) {
+                        const row = `<tr>
+                            <td class="px-6 py-4 font-mono text-xs">${currentItem.time}</td>
+                            <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${currentItem.status}</span></td>
+                            <td class="px-6 py-4 text-xs font-medium text-blue-600">${duration}</td>
+                        </tr>`;
+                        tableBody.innerHTML += row;
+                        
+                        labels.unshift(currentItem.time);
+                        points.unshift(currentItem.status === 'Online' ? 1 : 0);
+                    }
                 }
                 
                 powerChart.data.labels = labels;
