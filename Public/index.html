@@ -176,9 +176,9 @@
                 }
                 
                 document.getElementById('today-count').innerText = todayOffCount + " বার";
-                document.getElementById('today-total-time').innerText = todayTotalMinutes + " কম.";
+                document.getElementById('today-total-time').innerText = todayTotalMinutes + " মি.";
                 const avg = todayOffCount > 0 ? Math.round(todayTotalMinutes / todayOffCount) : 0;
-                document.getElementById('today-avg-time').innerText = avg + " কম.";
+                document.getElementById('today-avg-time').innerText = avg + " মি.";
 
                 if (powerChart) {
                     powerChart.data.labels = labels;
