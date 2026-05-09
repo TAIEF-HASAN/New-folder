@@ -47,7 +47,7 @@
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
-            authDomain: "://firebaseapp.com",
+            authDomain: "kalkinipowermonitor.firebaseapp.com",
             databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "kalkinipowermonitor",
             storageBucket: "kalkinipowermonitor.firebasestorage.app",
@@ -60,8 +60,8 @@
         const ctx = document.getElementById('powerChart').getContext('2d');
         const powerChart = new Chart(ctx, {
             type: 'line',
-            data: { labels: [], datasets: [{ label: 'পাওয়ার স্ট্যাটাস (1=অন, 0=অফ)', data: [], borderColor: '#3b82f6', stepped: true }] },
-            options: { scales: { y: { min: 0, max: 1.2 } } }
+            data: { labels: [], datasets: [{ label: 'পাওয়ার স্ট্যাটাস (1=অন, 0=অফ)', data: [], borderColor: '#3b82f6', stepped: true, fill: false }] },
+            options: { scales: { y: { min: 0, max: 1.2, ticks: { stepSize: 1 } } } }
         });
 
         db.ref('current_status').on('value', (snap) => {
@@ -74,24 +74,51 @@
             }
         });
 
-        db.ref('power_status').limitToLast(10).on('value', (snap) => {
+        // সময়কাল ক্যালকুলেট করার ফাংশন
+        function calculateDuration(startTimeStr, endTimeStr) {
+            if (!startTimeStr || !endTimeStr) return "---";
+            const start = new Date(startTimeStr);
+            const end = new Date(endTimeStr);
+            const diffMs = Math.abs(end - start);
+            const diffMins = Math.round(diffMs / 60000);
+            
+            if (diffMins < 60) return `${diffMins} মিনিট`;
+            const hours = Math.floor(diffMins / 60);
+            const mins = diffMins % 60;
+            return `${hours} ঘণ্টা ${mins} মিনিট`;
+        }
+
+        db.ref('power_status').limitToLast(11).on('value', (snap) => {
             const data = snap.val();
             const tableBody = document.getElementById('log-table-body');
             tableBody.innerHTML = '';
             let labels = [], points = [];
+            
             if (data) {
-                Object.keys(data).reverse().forEach(key => {
-                    const item = data[key];
-                    if (!item || !item.time) return;
+                const keys = Object.keys(data);
+                const items = keys.map(key => data[key]);
+
+                // লুপ চালিয়ে প্রতিটি রো এর জন্য সময়কাল বের করা
+                for (let i = items.length - 1; i >= 0; i--) {
+                    const currentItem = items[i];
+                    const nextItem = items[i + 1]; // যেহেতু রিভার্স দেখাচ্ছি, পরের আইটেমটি আসলে সময়ের হিসেবে পরের
+                    
+                    let duration = "---";
+                    if (nextItem) {
+                        duration = calculateDuration(currentItem.time, nextItem.time);
+                    }
+
                     const row = `<tr>
-                        <td class="px-6 py-4 font-mono text-xs">${item.time}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${item.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${item.status}</span></td>
-                        <td class="px-6 py-4 text-xs font-medium text-blue-600">${item.duration || '---'}</td>
+                        <td class="px-6 py-4 font-mono text-xs">${currentItem.time}</td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${currentItem.status}</span></td>
+                        <td class="px-6 py-4 text-xs font-medium text-blue-600">${duration}</td>
                     </tr>`;
+                    
                     tableBody.innerHTML += row;
-                    labels.unshift(item.time.toString()); // No split used here
-                    points.unshift(item.status === 'Online' ? 1 : 0);
-                });
+                    labels.unshift(currentItem.time);
+                    points.unshift(currentItem.status === 'Online' ? 1 : 0);
+                }
+                
                 powerChart.data.labels = labels;
                 powerChart.data.datasets[0].data = points;
                 powerChart.update();
