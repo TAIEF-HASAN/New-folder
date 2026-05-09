@@ -138,6 +138,16 @@
             const todayStr = new Date().toLocaleDateString("en-BD");
 
             // লুপটি উল্টো দিক থেকে ঘুরবে
+            // লুপ শুরু হওয়ার আগে তারিখের ফরম্যাটগুলো ঠিক করে নিন
+            const now = new Date();
+            const d = now.getDate();
+            const m = now.getMonth() + 1;
+            const y = now.getFullYear();
+
+            // আইফোন এবং অ্যান্ড্রয়েডের ভিন্ন ভিন্ন ফরম্যাট (যেমন: 5/9/2026 এবং 05/09/2026) সাপোর্ট করার জন্য
+            const todayStr1 = `${d}/${m}/${y}`;
+            const todayStr2 = `${d < 10 ? '0' + d : d}/${m < 10 ? '0' + m : m}/${y}`;
+
             for (let i = items.length - 1; i >= 0; i--) {
                 const currentItem = items[i];
                 const previousItem = items[i - 1];
@@ -151,17 +161,27 @@
                 // ২. সময়কাল (Duration) বের করা
                 let duration = "---";
                 let durationMins = 0;
+                
                 if (currentItem.status === 'Online' && previousItem && previousItem.status === 'Offline') {
                     duration = calculateDuration(previousItem.time, currentItem.time);
-                    // সামারি ক্যালকুলেশনের জন্য মিনিট আলাদা করা
-                    durationMins = Math.round(Math.abs(new Date(currentItem.time) - new Date(previousItem.time)) / 60000);
+                    
+                    // আইফোন ফ্রেন্ডলি মিনিট ক্যালকুলেশন
+                    try {
+                        const startTime = new Date(previousItem.time.replace(/-/g, "/"));
+                        const endTime = new Date(currentItem.time.replace(/-/g, "/"));
+                        durationMins = Math.round(Math.abs(endTime - startTime) / 60000);
+                    } catch (e) {
+                        durationMins = 0;
+                    }
                 }
 
-                // ৩. আজকের সামারি হিসাব (যদি তারিখ আজকের হয়)
-                if (currentItem.time.includes(todayStr)) {
+                // ৩. আজকের সামারি হিসাব (আইফোন ও অ্যান্ড্রয়েড উভয়ের তারিখ চেক করবে)
+                if (currentItem.time.includes(todayStr1) || currentItem.time.includes(todayStr2)) {
                     if (currentItem.status === 'Online' && duration !== "---") {
                         todayOffCount++;
-                        todayTotalMinutes += durationMins;
+                        if (!isNaN(durationMins)) {
+                            todayTotalMinutes += durationMins;
+                        }
                     }
                 }
 
@@ -184,6 +204,7 @@
                     tableCount++;
                 }
             }
+
             
             // ৫. কার্ডের ডাটা আপডেট
             document.getElementById('today-count').innerText = todayOffCount + " বার";
