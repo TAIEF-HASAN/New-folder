@@ -92,7 +92,8 @@
             return `${hours} ঘণ্টা ${mins} মিনিট`;
         }
 
-        db.ref('power_status').limitToLast(10).on('value', (snap) => {
+        // আমরা ৩০টি ডাটা নেব যাতে ফিল্টার করার পরেও ১০টি ইউনিক ডাটা পাওয়া যায়
+    db.ref('power_status').limitToLast(30).on('value', (snap) => {
         const data = snap.val();
         const tableBody = document.getElementById('log-table-body');
         tableBody.innerHTML = '';
@@ -103,17 +104,22 @@
             const items = keys.map(key => data[key]);
             
             let lastRenderedStatus = null; 
+            let count = 0; // ১০টি ডাটা গোনার জন্য
 
             for (let i = items.length - 1; i >= 0; i--) {
                 const currentItem = items[i];
                 const previousItem = items[i - 1];
                 
-                // সুরক্ষা: যদি ডাটা বা সময় না থাকে, তবে এই রো স্কিপ করবে (undefined দূর হবে)
                 if (!currentItem || !currentItem.time || !currentItem.status) continue;
 
-                // ডুপ্লিকেট চেক
+                // ডুপ্লিকেট বাদ দেওয়ার লজিক
                 if (currentItem.status === lastRenderedStatus) continue;
+                
+                // যদি ১০টি ইউনিক ডাটা দেখানো হয়ে যায়, তবে লুপ থামিয়ে দাও
+                if (count >= 10) break;
+
                 lastRenderedStatus = currentItem.status;
+                count++;
 
                 let duration = "---";
                 if (currentItem.status === 'Online' && previousItem && previousItem.status === 'Offline') {
@@ -138,6 +144,7 @@
             powerChart.update();
         }
     });
+
 
     </script>
 </body>
