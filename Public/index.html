@@ -97,46 +97,45 @@
             tableBody.innerHTML = '';
             let labels = [], points = [];
             
-            // index.html এর snap.val() লুপের ভেতরে এই লজিকটি বসান
-                if (data) {
-                    const keys = Object.keys(data);
-                    const items = keys.map(key => data[key]);
+            if (data) {
+                const keys = Object.keys(data); // সময় অনুযায়ী সিরিয়াল কি (Key)
+                const items = keys.map(key => data[key]);
+
+                // লুপের ভেতরের অংশ
+                for (let i = items.length - 1; i >= 0; i--) {
+                    const currentItem = items[i];
+                    const previousItem = items[i - 1]; 
                     
-                    let lastRenderedStatus = null; // ডুপ্লিকেট রোধ করতে
+                    let duration = "---";
 
-                    for (let i = items.length - 1; i >= 0; i--) {
-                        const currentItem = items[i];
-                        const previousItem = items[i - 1];
-                        
-                        // ডুপ্লিকেট চেক: যদি আগের ইভেন্ট আর বর্তমান ইভেন্ট একই হয়, তবে এটি দেখাবে না
-                        if (currentItem.status === lastRenderedStatus) continue;
-                        lastRenderedStatus = currentItem.status;
+                    // লজিক: যদি বর্তমান স্ট্যাটাস Online হয়, তবেই আগের Offline থেকে সময় হিসেব করবে
+                    if (currentItem.status === 'Online' && previousItem && previousItem.status === 'Offline') {
+                        duration = calculateDuration(previousItem.time, currentItem.time);
+                    }
 
-                        let duration = "---";
-                        if (currentItem.status === 'Online' && previousItem && previousItem.status === 'Offline') {
-                            duration = calculateDuration(previousItem.time, currentItem.time);
-                        }
-
+                    if (currentItem.time && currentItem.status) {
                         const row = `<tr>
                             <td class="px-6 py-4 font-mono text-xs">${currentItem.time}</td>
-                            <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${currentItem.status}</span></td>
+                            <td class="px-6 py-4">
+                                <span class="px-2 py-1 rounded text-xs font-bold ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                    ${currentItem.status}
+                                </span>
+                            </td>
                             <td class="px-6 py-4 text-xs font-bold ${currentItem.status === 'Online' ? 'text-red-600' : 'text-gray-400'}">
-                                ${currentItem.status === 'Online' ? 'লোডশেডিং: ' + duration : '---'}
+                                ${currentItem.status === 'Online' ? 'লোডশেডিং: ' + duration : '---'}
                             </td>
                         </tr>`;
                         tableBody.innerHTML += row;
                         
-                        // গ্রাফের জন্য ডাটা
                         labels.unshift(currentItem.time);
                         points.unshift(currentItem.status === 'Online' ? 1 : 0);
+                        }
                     }
-                }
-
                     
                     powerChart.data.labels = labels;
                     powerChart.data.datasets[0].data = points;
                     powerChart.update();
-            }
+                }
         });
     </script>
 </body>
