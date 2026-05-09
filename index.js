@@ -13,67 +13,51 @@ const statusRef = db.ref("power_status");
 const currentRef = db.ref("current_status"); 
 const summaryRef = db.ref("daily_summary");
 
-let lastStatus = "Online"; 
+let lastLoggedStatus = "Online"; // বর্তমানে ডাটাবেজে কী আছে তা মনে রাখবে
+
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
-// --- ১. রিয়েল-টাইম অফলাইন ডিটেকশন (সংশোধিত) ---
+// ১. Firebase কানেকশন হ্যান্ডলিং (শুধুমাত্র লাইভ স্ট্যাটাসের জন্য)
 db.ref(".info/connected").on("value", (snap) => {
   if (snap.val() === true) {
     console.log("Firebase Connected...");
-    
-    // কানেক্ট হলে স্ট্যাটাস অনলাইন নিশ্চিত করা
+    // কানেক্ট হলে শুধু লাইভ স্ট্যাটাস অনলাইন দেখাবে
     currentRef.update({ status: "Online", time: getBDTime() });
 
-    // বিদ্যুৎ চলে গেলে ডাটাবেজ নিজে থেকে এই কাজগুলো করবে
-    const disconnectTime = getBDTime();
-    currentRef.onDisconnect().update({ status: "Offline", time: disconnectTime });
-    
-    // লগ টেবিলে অফলাইন এন্ট্রি
-    statusRef.onDisconnect().push({ 
-        time: disconnectTime, 
+    // হুট করে ডিসকানেক্ট হলে লাইভ স্ট্যাটাস অফলাইন দেখাবে (কিন্তু লগে কিছু লিখবে না)
+    currentRef.onDisconnect().update({ 
         status: "Offline", 
-        location: "Kalkini" 
+        time: getBDTime() 
     });
   }
 });
 
-// --- ২. বিদ্যুৎ আসা চেক করার লজিক (সংশোধিত) ---
+// ২. পাওয়ার চেক করার মূল ফাংশন (Smart Monitoring)
 async function checkPower() {
     const timestamp = getBDTime();
-
     try {
-        // google.com এর চেয়ে 1.1.1.1 (Cloudflare) দ্রুত কাজ করে
-        await axios.get('https://1.1.1', { timeout: 5000 });
+        // গুগলের বদলে এই ফাস্ট DNS চেক করা বেশি নিরাপদ
+        await axios.get('https://1.1.1', { timeout: 8000 });
         
-        // যদি আগে অফলাইন থাকে এবং এখন ইন্টারনেট পায়, তবেই লগ পুশ হবে
-        if (lastStatus === "Offline") {
-            statusRef.push({ 
-                time: timestamp, 
-                status: "Online", 
-                location: "Kalkini" 
-            });
-            currentRef.update({ status: "Online", time: timestamp });
-            console.log(`[${timestamp}] বিদ্যুৎ এসেছে!`);
-            lastStatus = "Online";
+        // যদি ডাটাবেজে আগে 'Offline' থাকে এবং এখন কানেকশন পাওয়া যায়
+        if (lastLoggedStatus === "Offline") {
+            await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
+            await currentRef.update({ status: "Online", time: timestamp });
+            console.log(`[${timestamp}] নিশ্চিত: বিদ্যুৎ এসেছে।`);
+            lastLoggedStatus = "Online";
         }
     } catch (error) {
-        // নেট না থাকলে বা কারেন্ট না থাকলে স্ট্যাটাস ইন্টারনালি অফলাইন করে রাখা
-        if (lastStatus === "Online") {
-            console.log("সংযোগ বিচ্ছিন্ন বা বিদ্যুৎ নেই...");
-            lastStatus = "Offline";
+        // যদি ডাটাবেজে আগে 'Online' থাকে এবং এখন কানেকশন ফেইল করে
+        if (lastLoggedStatus === "Online") {
+            // বিদ্যুৎ চলে যাওয়ার লগ
+            await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
+            await currentRef.update({ status: "Offline", time: timestamp });
+            console.log(`[${timestamp}] নিশ্চিত: বিদ্যুৎ চলে গেছে।`);
+            lastLoggedStatus = "Offline";
         }
     }
 }
 
-// ৩. প্রতিদিনের সামারি (অপরিবর্তিত লজিক, শুধু টাইমার চেক)
-setInterval(() => {
-    const now = new Date();
-    if (now.getHours() === 23 && now.getMinutes() === 59) {
-        // এখানে আপনার প্রয়োজন অনুযায়ী totalOffCount হিসাব করার কোড যোগ করতে পারেন
-        console.log("Daily Summary Processed.");
-    }
-}, 60000);
-
-// প্রতি ৩০ সেকেন্ডে একবার চেক করবে
-setInterval(checkPower, 30000);
+// প্রতি ৪৫ সেকেন্ডে একবার চেক করবে (বেশি ঘন ঘন চেক করলে ফ্ল্যাপিং বাড়ে)
+setInterval(checkPower, 45000);
 checkPower();
