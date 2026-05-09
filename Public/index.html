@@ -102,13 +102,16 @@
             const keys = Object.keys(data);
             const items = keys.map(key => data[key]);
             
-            let lastRenderedStatus = null; // ডুপ্লিকেট রোধ করতে
+            let lastRenderedStatus = null; 
 
             for (let i = items.length - 1; i >= 0; i--) {
                 const currentItem = items[i];
                 const previousItem = items[i - 1];
                 
-                // ডুপ্লিকেট চেক: যদি আগের ইভেন্ট আর বর্তমান ইভেন্ট একই হয়, তবে এটি দেখাবে না
+                // সুরক্ষা: যদি ডাটা বা সময় না থাকে, তবে এই রো স্কিপ করবে (undefined দূর হবে)
+                if (!currentItem || !currentItem.time || !currentItem.status) continue;
+
+                // ডুপ্লিকেট চেক
                 if (currentItem.status === lastRenderedStatus) continue;
                 lastRenderedStatus = currentItem.status;
 
@@ -126,12 +129,10 @@
                 </tr>`;
                 tableBody.innerHTML += row;
                 
-                // গ্রাফের জন্য ডাটা
                 labels.unshift(currentItem.time);
                 points.unshift(currentItem.status === 'Online' ? 1 : 0);
             }
             
-            // চার্ট আপডেট - ইফ ব্লকের ভেতরে রাখা হয়েছে
             powerChart.data.labels = labels;
             powerChart.data.datasets[0].data = points;
             powerChart.update();
