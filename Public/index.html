@@ -101,27 +101,34 @@
                 const keys = Object.keys(data); // সময় অনুযায়ী সিরিয়াল কি (Key)
                 const items = keys.map(key => data[key]);
 
-                // লুপটি উল্টো দিক থেকে ঘুরবে যাতে নতুন ডাটা উপরে থাকে
-                for (let i = items.length - 1; i >= 0; i--) {
-                    const currentItem = items[i];
-                    const previousItem = items[i - 1]; // আগের ডাটা থেকে সময়কাল বের হবে
-                    
-                    let duration = "---";
-                    if (previousItem) {
-                        duration = calculateDuration(previousItem.time, currentItem.time);
-                    }
+                // লুপের ভেতরের অংশ
+            for (let i = items.length - 1; i >= 0; i--) {
+                const currentItem = items[i];
+                const previousItem = items[i - 1]; 
+                
+                let duration = "---";
 
-                    // Undefined ডাটা চেক
-                    if (currentItem.time && currentItem.status) {
-                        const row = `<tr>
-                            <td class="px-6 py-4 font-mono text-xs">${currentItem.time}</td>
-                            <td class="px-6 py-4"><span class="px-2 py-1 rounded text-xs font-bold ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${currentItem.status}</span></td>
-                            <td class="px-6 py-4 text-xs font-medium text-blue-600">${duration}</td>
-                        </tr>`;
-                        tableBody.innerHTML += row;
-                        
-                        labels.unshift(currentItem.time);
-                        points.unshift(currentItem.status === 'Online' ? 1 : 0);
+                // লজিক: যদি বর্তমান স্ট্যাটাস Online হয়, তবেই আগের Offline থেকে সময় হিসেব করবে
+                if (currentItem.status === 'Online' && previousItem && previousItem.status === 'Offline') {
+                    duration = calculateDuration(previousItem.time, currentItem.time);
+                }
+
+                if (currentItem.time && currentItem.status) {
+                    const row = `<tr>
+                        <td class="px-6 py-4 font-mono text-xs">${currentItem.time}</td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-xs font-bold ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                ${currentItem.status}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 text-xs font-bold ${currentItem.status === 'Online' ? 'text-red-600' : 'text-gray-400'}">
+                            ${currentItem.status === 'Online' ? 'লোডশেডিং: ' + duration : '---'}
+                        </td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                    
+                    labels.unshift(currentItem.time);
+                    points.unshift(currentItem.status === 'Online' ? 1 : 0);
                     }
                 }
                 
