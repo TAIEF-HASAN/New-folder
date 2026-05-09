@@ -137,16 +137,9 @@
             let todayTotalMinutes = 0;
             const todayStr = new Date().toLocaleDateString("en-BD");
 
-            // লুপটি উল্টো দিক থেকে ঘুরবে
-            // লুপ শুরু হওয়ার আগে তারিখের ফরম্যাটগুলো ঠিক করে নিন
+            // ১. আজকের তারিখের একটি অংশ বের করে নেওয়া (সব ডিভাইসে কমন থাকে)
             const now = new Date();
-            const d = now.getDate();
-            const m = now.getMonth() + 1;
-            const y = now.getFullYear();
-
-            // আইফোন এবং অ্যান্ড্রয়েডের ভিন্ন ভিন্ন ফরম্যাট (যেমন: 5/9/2026 এবং 05/09/2026) সাপোর্ট করার জন্য
-            const todayStr1 = `${d}/${m}/${y}`;
-            const todayStr2 = `${d < 10 ? '0' + d : d}/${m < 10 ? '0' + m : m}/${y}`;
+            const currentDay = now.getDate().toString(); // যেমন: "9" বা "09"
 
             for (let i = items.length - 1; i >= 0; i--) {
                 const currentItem = items[i];
@@ -154,38 +147,38 @@
                 
                 if (!currentItem || !currentItem.time || !currentItem.status) continue;
 
-                // ১. ডুপ্লিকেট বাদ দেওয়ার লজিক
+                // ২. ডুপ্লিকেট বাদ দেওয়ার লজিক
                 if (currentItem.status === lastRenderedStatus) continue;
                 lastRenderedStatus = currentItem.status;
 
-                // ২. সময়কাল (Duration) বের করা
+                // ৩. সময়কাল (Duration) বের করা
                 let duration = "---";
                 let durationMins = 0;
                 
                 if (currentItem.status === 'Online' && previousItem && previousItem.status === 'Offline') {
                     duration = calculateDuration(previousItem.time, currentItem.time);
                     
-                    // আইফোন ফ্রেন্ডলি মিনিট ক্যালকুলেশন
-                    try {
-                        const startTime = new Date(previousItem.time.replace(/-/g, "/"));
-                        const endTime = new Date(currentItem.time.replace(/-/g, "/"));
-                        durationMins = Math.round(Math.abs(endTime - startTime) / 60000);
-                    } catch (e) {
-                        durationMins = 0;
+                    // সব ডিভাইসের জন্য নিরাপদ ক্যালকুলেশন
+                    const start = new Date(previousItem.time.replace(/-/g, "/")).getTime();
+                    const end = new Date(currentItem.time.replace(/-/g, "/")).getTime();
+                    if(!isNaN(start) && !isNaN(end)) {
+                        durationMins = Math.round(Math.abs(end - start) / 60000);
                     }
                 }
 
-                // ৩. আজকের সামারি হিসাব (আইফোন ও অ্যান্ড্রয়েড উভয়ের তারিখ চেক করবে)
-                if (currentItem.time.includes(todayStr1) || currentItem.time.includes(todayStr2)) {
+                // ৪. আজকের সামারি হিসাব (স্মার্ট ফিল্টার)
+                // তারিখের ফরম্যাট যাই হোক (5/9 বা 05/09 বা 5-9), আজকের দিনটি মিললে এটি কাজ করবে
+                const isToday = currentItem.time.includes(`/${now.getMonth() + 1}/${now.getFullYear()}`) || 
+                                currentItem.time.includes(`-${now.getMonth() + 1}-${now.getFullYear()}`);
+
+                if (isToday) {
                     if (currentItem.status === 'Online' && duration !== "---") {
                         todayOffCount++;
-                        if (!isNaN(durationMins)) {
-                            todayTotalMinutes += durationMins;
-                        }
+                        todayTotalMinutes += durationMins;
                     }
                 }
 
-                // ৪. টেবিলে ডাটা বসানো (সর্বোচ্চ ১০টি)
+                // ৫. টেবিলে ডাটা বসানো (সর্বোচ্চ ১০টি)
                 if (tableCount < 10) {
                     const row = `<tr>
                         <td class="px-4 py-4 font-mono text-[10px] leading-tight text-gray-500">${currentItem.time}</td>
@@ -204,6 +197,7 @@
                     tableCount++;
                 }
             }
+
 
             
             // ৫. কার্ডের ডাটা আপডেট
