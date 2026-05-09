@@ -11,68 +11,65 @@ admin.initializeApp({
 const db = admin.database();
 const statusRef = db.ref("power_status"); 
 const currentRef = db.ref("current_status"); 
-const summaryRef = db.ref("daily_summary"); // নতুন নোড
+const summaryRef = db.ref("daily_summary");
 
-let lastStatus = null; 
+let lastStatus = "Online"; // শুরুতে অনলাইন ধরে নেওয়া হলো
 let powerCutStartTime = null; 
-let totalOffCount = 0; // সারাদিনে কতবার বিদ্যুৎ গেল
-let totalOffDurationMs = 0; // মোট কতক্ষণ ছিল না (মিলি-সেকেন্ডে)
+let totalOffCount = 0; 
+let totalOffDurationMs = 0; 
 
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
-// --- রিয়েল-টাইম অফলাইন ডিটেকশন ---
+// --- ১. বিদ্যুৎ যাওয়া মাত্রই সাথে সাথে লগ করার লজিক (onDisconnect) ---
 db.ref(".info/connected").on("value", (snap) => {
   if (snap.val() === true) {
+    console.log("সার্ভারের সাথে সংযুক্ত...");
+    
+    // কানেক্ট হওয়া মাত্রই বর্তমান স্ট্যাটাস অনলাইন
     currentRef.set({ status: "Online", time: getBDTime() });
-    currentRef.onDisconnect().set({ status: "Offline", time: getBDTime() });
+
+    // বিদ্যুৎ চলে গেলে বা নেট ডিসকানেক্ট হলে যা হবে
+    const disconnectTime = getBDTime();
+    
+    // লাইভ স্ট্যাটাস অফলাইন করা
+    currentRef.onDisconnect().set({ status: "Offline", time: disconnectTime });
+    
+    // লগ (History) টেবিলে অফলাইন ডাটা পুশ করার অগ্রিম চুক্তি
+    statusRef.onDisconnect().push({ 
+        time: disconnectTime, 
+        status: "Offline", 
+        location: "Kalkini" 
+    });
   }
 });
 
-async function checkAndUpload() {
+// --- ২. বিদ্যুৎ আসা চেক করার লজিক ---
+async function checkPower() {
     const now = new Date();
     const timestamp = getBDTime();
-    let currentStatus = "";
 
     try {
         await axios.get('https://google.com', { timeout: 5000 });
-        currentStatus = "Online";
         
-        if (currentStatus !== lastStatus) {
-            let durationText = "N/A";
-
-            if (powerCutStartTime) {
-                const durationMs = now - powerCutStartTime;
-                totalOffDurationMs += durationMs; // মোট সময়ে যোগ হলো
-                
-                const totalMinutes = Math.floor(durationMs / (1000 * 60));
-                const hours = Math.floor(totalMinutes / 60);
-                const mins = totalMinutes % 60;
-                durationText = hours > 0 ? `${hours} ঘণ্টা ${mins} মিনিট` : `${mins} মিনিট`;
-                powerCutStartTime = null; 
-            }
-
-            statusRef.push({ time: timestamp, status: "Online", duration: durationText, location: "Kalkini" });
+        // যদি আগে অফলাইন ছিল (অর্থাৎ এখন কারেন্ট আসলো)
+        if (lastStatus === "Offline") {
+            statusRef.push({ 
+                time: timestamp, 
+                status: "Online", 
+                location: "Kalkini" 
+            });
             console.log(`[${timestamp}] বিদ্যুৎ এসেছে!`);
-            lastStatus = currentStatus;
+            lastStatus = "Online";
         }
-
     } catch (error) {
-        currentStatus = "Offline";
-        if (currentStatus !== lastStatus) {
-            powerCutStartTime = now; 
-            totalOffCount++; // কতবার গেল তা গুনছি
-
-            statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
-            console.log(`[${timestamp}] বিদ্যুৎ নেই!`);
-            lastStatus = currentStatus;
-        }
+        // বিদ্যুৎ না থাকলে lastStatus অফলাইন করে রাখা
+        lastStatus = "Offline";
     }
 }
 
-// --- প্রতিদিন রাত ১১:৫৯ মিনিটে সামারি সেভ করার লজিক ---
+// প্রতিদিন রাত ১১:৫৯ মিনিটে সামারি সেভ করার লজিক (অপরিবর্তিত)
 setInterval(() => {
     const now = new Date();
-    // রাত ১১:৫৯ মিনিটে এটি রান হবে
     if (now.getHours() === 23 && now.getMinutes() === 59) {
         const totalMinutes = Math.floor(totalOffDurationMs / (1000 * 60));
         const hours = Math.floor(totalMinutes / 60);
@@ -85,12 +82,11 @@ setInterval(() => {
             timestamp: Date.now()
         });
 
-        // নতুন দিনের জন্য রিসেট
         totalOffCount = 0;
         totalOffDurationMs = 0;
-        console.log("Daily Summary Sent to Firebase!");
     }
-}, 60000); // প্রতি মিনিটে চেক করবে সময় হয়েছে কি না
+}, 60000);
 
-setInterval(checkAndUpload, 5 * 60 * 1000);
-checkAndUpload();
+// এখন আমরা ৩০ সেকেন্ড পর পর চেক করব, কিন্তু ডাটা পাঠাব শুধু পরিবর্তন হলে
+setInterval(checkPower, 30 * 1000);
+checkPower();
