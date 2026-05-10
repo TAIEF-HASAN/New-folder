@@ -162,16 +162,28 @@
                         if(!isNaN(s) && !isNaN(e)) durationMins = Math.round(Math.abs(e - s) / 60000);
                     }
 
-                    // ৩. সামারি হিসাব (১০ম দিনের অটো-রিসেট লজিক)
+                    // ৩. সামারি হিসাব (সব ডিভাইসের জন্য ১০০% কাজ করবে)
                     const itemDate = currentItem.time.split(',')[0].trim();
-                    
-                    // যদি ডাটাবেজের তারিখটি আজকের (todayStr বা todayStrAlt) সাথে মেলে
-                    if (itemDate === todayStr || itemDate === todayStrAlt) {
+
+                    // ডাটাবেজের তারিখের ভেতর আজকের দিন, মাস এবং বছর আছে কি না চেক করা
+                    const isToday = itemDate.includes(`${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`) || 
+                                    itemDate.includes(`${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`);
+
+                    if (isToday) {
                         if (currentItem.status === 'Online' && duration !== "---") {
                             todayOffCount++;
-                            todayTotalMinutes += durationMins;
+                            
+                            // মিনিট ক্যালকুলেশন (৩ মিনিট ফিরিয়ে আনার জন্য)
+                            const start = new Date(previousItem.time.replace(/-/g, "/")).getTime();
+                            const end = new Date(currentItem.time.replace(/-/g, "/")).getTime();
+                            const diff = Math.round(Math.abs(end - start) / 60000);
+                            
+                            if (!isNaN(diff)) {
+                                todayTotalMinutes += diff;
+                            }
                         }
                     }
+
 
 
                     // ৪. টেবিল রেন্ডারিং
