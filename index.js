@@ -16,7 +16,7 @@ let lastStatus = "Online";
 let errorCount = 0; 
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
-// --- ১. অফলাইন ডিটেকশন লজিক (সংশোধিত) ---
+// --- ১. অফলাইন ডিটেকশন লজিক (Error Fixed) ---
 db.ref(".info/connected").on("value", (snap) => {
   if (snap.val() === true) {
     console.log("সার্ভারের সাথে সংযুক্ত...");
@@ -26,12 +26,10 @@ db.ref(".info/connected").on("value", (snap) => {
 
     // বিদ্যুৎ চলে গেলে Firebase স্বয়ংক্রিয়ভাবে নিচের কাজগুলো করবে
     const disconnectTime = getBDTime();
-    
-    // লাইভ স্ট্যাটাস অফলাইন করা
     currentRef.onDisconnect().update({ status: "Offline", time: disconnectTime });
     
-    // লগে অফলাইন এন্ট্রি সেভ করার সঠিক পদ্ধতি
-    const offlinePushRef = statusRef.push(); // আগে একটি আইডি জেনারেট করে নিতে হবে
+    // লগে অফলাইন এন্ট্রি সেভ করার সঠিক পদ্ধতি (Fix for Line 30)
+    const offlinePushRef = statusRef.push(); 
     offlinePushRef.onDisconnect().set({ 
         time: disconnectTime, 
         status: "Offline", 
@@ -44,7 +42,6 @@ db.ref(".info/connected").on("value", (snap) => {
 async function checkPower() {
     const timestamp = getBDTime();
     try {
-        // স্ট্যাবল চেকিংয়ের জন্য Cloudflare DNS ব্যবহার
         await axios.get('https://1.1.1', { timeout: 8000 });
         
         errorCount = 0; 
@@ -55,12 +52,11 @@ async function checkPower() {
             console.log(`[${timestamp}] বিদ্যুৎ ফিরেছে।`);
             lastStatus = "Online";
         } else {
-            // শুধুমাত্র লাইভ সময় আপডেট (লগ জ্যাম হবে না)
             await currentRef.update({ time: timestamp, status: "Online" });
         }
     } catch (error) {
         errorCount++;
-        // যদি টানা ৩ বার (৯০ সেকেন্ড) নেট না পায়, তবে অফলাইন ধরে নিবে
+        // টানা ৩ বার (৯০ সেকেন্ড) নেট না পায় তবেই অফলাইন সিদ্ধান্ত
         if (errorCount >= 3 && lastStatus === "Online") {
             lastStatus = "Offline";
             console.log(`[${timestamp}] সংযোগ বিচ্ছিন্ন বা বিদ্যুৎ নেই।`);
@@ -68,6 +64,5 @@ async function checkPower() {
     }
 }
 
-// প্রতি ৩০ সেকেন্ড পরপর চেক করবে
 setInterval(checkPower, 30000);
 checkPower();
