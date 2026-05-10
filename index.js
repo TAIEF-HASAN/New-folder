@@ -12,7 +12,7 @@ const db = admin.database();
 const statusRef = db.ref("power_status"); 
 const currentRef = db.ref("current_status"); 
 
-let lastStatus = "Online"; 
+let lastStatus = null;; 
 let errorCount = 0; 
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
