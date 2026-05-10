@@ -51,26 +51,36 @@ db.ref(".info/connected").on("value", (snap) => {
 async function checkPower() {
     const timestamp = getBDTime();
     try {
+        // গুগলের বদলে সরাসরি একটি স্ট্যাবল IP চেক করা ভালো
         await axios.get('https://1.1.1', { timeout: 8000 });
+        
+        // সফল হলে এরর কাউন্ট ০ হবে
         errorCount = 0; 
 
-        if (lastStatus === "Offline") {
+        // যদি আগে অফলাইন থাকে অথবা প্রথমবার রান হয় (null), তবেই অনলাইন লগ পাঠাবে
+        if (lastStatus !== "Online") {
             await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
             await currentRef.update({ status: "Online", time: timestamp });
-            console.log(`[${timestamp}] বিদ্যুৎ ফিরেছে।`);
+            console.log(`[${timestamp}] নিশ্চিত: বিদ্যুৎ ফিরেছে (Online Log Sent)`);
             lastStatus = "Online";
         } else {
-            await currentRef.update({ time: timestamp, status: "Online" });
+            // শুধুমাত্র লাইভ টাইম আপডেট (যাতে স্ট্যাটাস স্থির থাকে)
+            await currentRef.child("time").set(timestamp);
         }
     } catch (error) {
         errorCount++;
-        // টানা ৩ বার (৯০ সেকেন্ড) নেট না পেলে অফলাইন সিদ্ধান্ত
-        if (errorCount >= 3 && lastStatus === "Online") {
+        console.log(`[${timestamp}] ইন্টারনেট বা বিদ্যুৎ নেই (চেক: ${errorCount}/৩)`);
+
+        // যদি টানা ৩ বার ফেইল করে এবং আগে অনলাইন থাকে
+        if (errorCount >= 3 && lastStatus !== "Offline") {
+            await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
+            await currentRef.update({ status: "Offline", time: timestamp });
+            console.log(`[${timestamp}] নিশ্চিত: বিদ্যুৎ চলে গেছে।`);
             lastStatus = "Offline";
-            console.log(`[${timestamp}] সংযোগ বিচ্ছিন্ন বা বিদ্যুৎ নেই।`);
         }
     }
 }
+
 
 setInterval(checkPower, 30000);
 checkPower();
