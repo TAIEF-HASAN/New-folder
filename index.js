@@ -16,7 +16,7 @@ let lastStatus = "Online";
 let errorCount = 0; 
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
-// --- ১. অফলাইন ডিটেকশন লজিক (Error Fixed) ---
+// --- ১. অফলাইন ডিটেকশন লজিক (সংশোধিত ও নিরাপদ) ---
 db.ref(".info/connected").on("value", (snap) => {
   if (snap.val() === true) {
     console.log("সার্ভারের সাথে সংযুক্ত...");
@@ -24,13 +24,14 @@ db.ref(".info/connected").on("value", (snap) => {
     // কানেক্ট হওয়া মাত্রই বর্তমান স্ট্যাটাস অনলাইন নিশ্চিত করা
     currentRef.update({ status: "Online", time: getBDTime() });
 
-    // বিদ্যুৎ চলে গেলে Firebase স্বয়ংক্রিয়ভাবে নিচের কাজগুলো করবে
+    // বিদ্যুৎ চলে গেলে ডাটাবেজ স্বয়ংক্রিয়ভাবে নিচের কাজগুলো করবে
     const disconnectTime = getBDTime();
     currentRef.onDisconnect().update({ status: "Offline", time: disconnectTime });
     
-    // লগে অফলাইন এন্ট্রি সেভ করার সঠিক পদ্ধতি (Fix for Line 30)
-    const offlinePushRef = statusRef.push(); 
-    offlinePushRef.onDisconnect().set({ 
+    // --- গুরুত্বপূর্ণ ফিক্স (Line 30) ---
+    // push() এর ওপর সরাসরি onDisconnect হয় না, তাই আলাদা রেফারেন্স নিতে হবে
+    const offlineLogRef = statusRef.push(); 
+    offlineLogRef.onDisconnect().set({ 
         time: disconnectTime, 
         status: "Offline", 
         location: "Kalkini" 
@@ -43,7 +44,6 @@ async function checkPower() {
     const timestamp = getBDTime();
     try {
         await axios.get('https://1.1.1', { timeout: 8000 });
-        
         errorCount = 0; 
 
         if (lastStatus === "Offline") {
@@ -56,7 +56,7 @@ async function checkPower() {
         }
     } catch (error) {
         errorCount++;
-        // টানা ৩ বার (৯০ সেকেন্ড) নেট না পায় তবেই অফলাইন সিদ্ধান্ত
+        // টানা ৩ বার (৯০ সেকেন্ড) নেট না পেলে অফলাইন ঘোষণা
         if (errorCount >= 3 && lastStatus === "Online") {
             lastStatus = "Offline";
             console.log(`[${timestamp}] সংযোগ বিচ্ছিন্ন বা বিদ্যুৎ নেই।`);
