@@ -52,7 +52,8 @@ async function checkPower() {
     const timestamp = getBDTime();
     try {
         // গুগলের বদলে সরাসরি একটি স্ট্যাবল IP চেক করা ভালো
-        await axios.get('https://1.1.1', { timeout: 8000 });
+        await axios.get('https://google.com', { timeout: 15000 });
+
         
         // সফল হলে এরর কাউন্ট ০ হবে
         errorCount = 0; 
