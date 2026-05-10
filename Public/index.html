@@ -121,19 +121,28 @@
             tableBody.innerHTML = '';
             let labels = [], points = [];
             
-            if (data) {
+                        if (data) {
                 const keys = Object.keys(data);
-                const items = keys.map(key => data[key]).filter(i => i && i.time); // খালি ডাটা বাদ দেওয়ার ফিল্টার
+                const items = keys.map(key => data[key]).filter(i => i && i.time);
                 
                 if (items.length === 0) return;
 
-                const latestEntry = items[items.length - 1];
-                const todayStr = latestEntry.time.split(',')[0].trim(); 
+                // --- পরিবর্তন এখানে (সিস্টেমের বর্তমান তারিখ নেওয়া হচ্ছে) ---
+                const now = new Date();
+                const d = now.getDate();
+                const m = now.getMonth() + 1;
+                const y = now.getFullYear();
+                
+                // সব ডিভাইসের জন্য দুটি সম্ভাব্য ফরম্যাট (৫/১০/২০২৬ এবং ০৫/১০/২০২৬)
+                const todayStr = `${d}/${m}/${y}`; 
+                const todayStrAlt = `${d < 10 ? '0'+d : d}/${m < 10 ? '0'+m : m}/${y}`;
+                // -------------------------------------------------------
 
                 let lastRenderedStatus = null; 
                 let tableCount = 0; 
                 let todayOffCount = 0;
                 let todayTotalMinutes = 0;
+
 
                 for (let i = items.length - 1; i >= 0; i--) {
                     const currentItem = items[i];
@@ -153,13 +162,17 @@
                         if(!isNaN(s) && !isNaN(e)) durationMins = Math.round(Math.abs(e - s) / 60000);
                     }
 
-                    // ৩. সামারি হিসাব
-                    if (currentItem.time.split(',')[0].trim() === todayStr) {
+                    // ৩. সামারি হিসাব (১০ম দিনের অটো-রিসেট লজিক)
+                    const itemDate = currentItem.time.split(',')[0].trim();
+                    
+                    // যদি ডাটাবেজের তারিখটি আজকের (todayStr বা todayStrAlt) সাথে মেলে
+                    if (itemDate === todayStr || itemDate === todayStrAlt) {
                         if (currentItem.status === 'Online' && duration !== "---") {
                             todayOffCount++;
                             todayTotalMinutes += durationMins;
                         }
                     }
+
 
                     // ৪. টেবিল রেন্ডারিং
                     if (tableCount < 10) {
