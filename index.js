@@ -5,7 +5,7 @@ const serviceAccount = require("./serviceAccountKey.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app"  
+  databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app"   
 });
 
 const db = admin.database();
@@ -16,7 +16,7 @@ let lastStatus = "Online";
 let errorCount = 0; 
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
-// --- ১. অফলাইন ডিটেকশন লজিক (সংশোধিত ও নিরাপদ) ---
+// --- ১. অফলাইন ডিটেকশন লজিক (সংশোধিত) ---
 db.ref(".info/connected").on("value", (snap) => {
   if (snap.val() === true) {
     console.log("সার্ভারের সাথে সংযুক্ত...");
@@ -24,12 +24,13 @@ db.ref(".info/connected").on("value", (snap) => {
     // কানেক্ট হওয়া মাত্রই বর্তমান স্ট্যাটাস অনলাইন নিশ্চিত করা
     currentRef.update({ status: "Online", time: getBDTime() });
 
-    // বিদ্যুৎ চলে গেলে ডাটাবেজ স্বয়ংক্রিয়ভাবে নিচের কাজগুলো করবে
     const disconnectTime = getBDTime();
+    
+    // লাইভ স্ট্যাটাস অফলাইন করার জন্য অগ্রিম চুক্তি
     currentRef.onDisconnect().update({ status: "Offline", time: disconnectTime });
     
-    // --- গুরুত্বপূর্ণ ফিক্স (Line 30) ---
-    // push() এর ওপর সরাসরি onDisconnect হয় না, তাই আলাদা রেফারেন্স নিতে হবে
+    // ইতিহাস বা লগে অফলাইন এন্ট্রি সেভ করার সঠিক পদ্ধতি
+    // এখানে push() এর বদলে আগে রেফারেন্স তৈরি করে তারপর set() করতে হবে
     const offlineLogRef = statusRef.push(); 
     offlineLogRef.onDisconnect().set({ 
         time: disconnectTime, 
@@ -56,7 +57,7 @@ async function checkPower() {
         }
     } catch (error) {
         errorCount++;
-        // টানা ৩ বার (৯০ সেকেন্ড) নেট না পেলে অফলাইন ঘোষণা
+        // টানা ৩ বার (৯০ সেকেন্ড) নেট না পেলে অফলাইন সিদ্ধান্ত
         if (errorCount >= 3 && lastStatus === "Online") {
             lastStatus = "Offline";
             console.log(`[${timestamp}] সংযোগ বিচ্ছিন্ন বা বিদ্যুৎ নেই।`);
