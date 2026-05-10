@@ -18,26 +18,33 @@ const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhak
 
 // --- ১. অফলাইন ডিটেকশন লজিক (সংশোধিত) ---
 db.ref(".info/connected").on("value", (snap) => {
-  if (snap.val() === true) {
-    console.log("সার্ভারের সাথে সংযুক্ত...");
-    
-    // কানেক্ট হওয়া মাত্রই বর্তমান স্ট্যাটাস অনলাইন নিশ্চিত করা
-    currentRef.update({ status: "Online", time: getBDTime() });
+    if (snap.val() === true) {
+        console.log("Firebase Connected...");
+        
+        // লাইভ স্ট্যাটাস সাথে সাথে অনলাইন করে দিবে
+        currentRef.update({ status: "Online", time: getBDTime() });
 
-    const disconnectTime = getBDTime();
-    
-    // লাইভ স্ট্যাটাস অফলাইন করার জন্য অগ্রিম চুক্তি
-    currentRef.onDisconnect().update({ status: "Offline", time: disconnectTime });
-    
-    // ইতিহাস বা লগে অফলাইন এন্ট্রি সেভ করার সঠিক পদ্ধতি
-    // এখানে push() এর বদলে আগে রেফারেন্স তৈরি করে তারপর set() করতে হবে
-    const offlineLogRef = statusRef.push(); 
-    offlineLogRef.onDisconnect().set({ 
-        time: disconnectTime, 
-        status: "Offline", 
-        location: "Kalkini" 
-    });
-  }
+        // বিদ্যুৎ চলে যাওয়ার জন্য অগ্রিম চুক্তি (অধিক নিরাপদ পদ্ধতি)
+        const disconnectTime = getBDTime();
+        
+        // ১. লাইভ স্ট্যাটাস অফলাইন
+        currentRef.onDisconnect().update({ 
+            status: "Offline", 
+            time: disconnectTime 
+        }).catch(err => console.error("onDisconnect currentRef failed:", err));
+
+        // ২. লগ টেবিলে অফলাইন এন্ট্রি (Fix: Separate Reference)
+        try {
+            const offlineLogRef = statusRef.push();
+            offlineLogRef.onDisconnect().set({ 
+                time: disconnectTime, 
+                status: "Offline", 
+                location: "Kalkini" 
+            }).catch(err => console.error("onDisconnect log failed:", err));
+        } catch (e) {
+            console.error("Error setting onDisconnect log:", e);
+        }
+    }
 });
 
 // --- ২. পাওয়ার চেক লজিক ---
