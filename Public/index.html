@@ -16,31 +16,33 @@
             <h1 class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">কালকিনি পাওয়ার মনিটর</h1>
             <p class="text-gray-500 text-xs mt-1">রিয়েল-টাইম বিদ্যুৎ পর্যবেক্ষণ ব্যবস্থা</p>
         </div>
-        <!-- আজকের অ্যানালাইসিস কার্ডস -->
-        <div class="grid grid-cols-3 gap-3 mb-6">
+        <!-- কার্ডের গ্রিড: মোবাইলে ২ কলাম, বড় স্ক্রিনে ৪ কলাম -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <!-- ১. আজকের লোডশেডিং -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
                 <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">আজকের লোডশেডিং</p>
                 <h3 id="today-count" class="text-xl font-black text-gray-800">০ বার</h3>
             </div>
+            
+            <!-- ২. মোট অফলাইন -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
                 <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">মোট অফলাইন</p>
                 <h3 id="today-total-time" class="text-xl font-black text-red-500">০ মি.</h3>
             </div>
+
+            <!-- ৩. গড় সময় -->
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
                 <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">গড় সময়</p>
                 <h3 id="today-avg-time" class="text-xl font-black text-blue-500">০ মি.</h3>
             </div>
-            <!-- কার্ডের গ্রিড আপডেট: ৩টির জায়গায় ৪টি কার্ড করা হয়েছে -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <!-- আগের ৩টি কার্ড এখানে থাকবে... -->
-                
-                <!-- নতুন ৪ নম্বর কার্ড: রিলায়বিলিটি স্কোর -->
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-                    <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">বিদ্যুতের স্থায়িত্ব</p>
-                    <h3 id="reliability-score" class="text-xl font-black text-green-500">100%</h3>
-                </div>
+
+            <!-- ৪. বিদ্যুতের স্থায়িত্ব -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">বিদ্যুতের স্থায়িত্ব</p>
+                <h3 id="reliability-score" class="text-xl font-black text-green-500">100%</h3>
             </div>
         </div>
+
     
 
         <!-- বর্তমান স্ট্যাটাস কার্ড -->
@@ -80,14 +82,17 @@
             </div>
         </div>
         <!-- একদম নিচে কপিরাইট ফুটার -->
-        <footer class="mt-10 text-center pb-6">
+        <footer class="mt-10 text-center pb-8">
+            <hr class="border-gray-100 mb-6 w-1/2 mx-auto">
             <p class="text-gray-400 text-[10px] font-medium tracking-widest uppercase">
                 © 2026 Kalkini Power Monitor | v2.0
             </p>
-            <p class="text-gray-500 text-xs mt-1">
-                Developed with ❤️ by <span class="font-bold text-blue-600 underline">MD TAIEF HASAN</span>
+            <p class="text-gray-500 text-xs mt-2">
+                Developed with ❤️ by <span class="font-bold text-blue-600 underline">MD Taief Hasan</span>
             </p>
+            <p class="text-[9px] text-gray-300 mt-1 italic">All Rights Reserved</p>
         </footer>
+
     </div>
 
     
