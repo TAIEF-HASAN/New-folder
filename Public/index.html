@@ -87,10 +87,51 @@
 
         const ctx = document.getElementById('powerChart').getContext('2d');
         const powerChart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: [], datasets: [{ label: 'পাওয়ার স্ট্যাটাস (1=অন, 0=অফ)', data: [], borderColor: '#3b82f6', stepped: true, fill: false }] },
-            options: { scales: { y: { min: 0, max: 1.2, ticks: { stepSize: 1 } } } }
-        });
+        type: 'line',
+        data: { 
+            labels: [], 
+            datasets: [{ 
+                label: 'পাওয়ার স্ট্যাটাস', 
+                data: [], 
+                borderColor: '#3b82f6', 
+                backgroundColor: 'rgba(59, 130, 246, 0.1)', // নিচের অংশ ভরাট করার রঙ
+                fill: true, // নিচের অংশ ফিল করার জন্য
+                stepped: true, 
+                pointRadius: 2,
+                borderWidth: 2
+            }] 
+        },
+        options: { 
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    left: -10, // বামের গ্যাপ কমানোর জন্য
+                    right: 0
+                }
+            },
+            scales: { 
+                y: { 
+                    min: 0, 
+                    max: 1.2, 
+                    ticks: { stepSize: 1, display: false }, // Y অক্ষের বাড়তি লেখা লুকানোর জন্য
+                    grid: { display: false } 
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: { size: 8 }
+                    }
+                }
+            },
+            plugins: {
+                legend: { display: false } // উপরের লেজেন্ড লুকানোর জন্য যাতে জায়গা বাঁচে
+            }
+        }
+    });
+
 
         db.ref('current_status').on('value', (snap) => {
             const data = snap.val();
