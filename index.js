@@ -16,18 +16,23 @@ let lastStatus = "Online";
 let errorCount = 0; 
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
 
-// --- ১. অফলাইন ডিটেকশন (বিদ্যুৎ যাওয়া মাত্রই কাজ করবে) ---
+// --- ১. অফলাইন ডিটেকশন লজিক (সংশোধিত) ---
 db.ref(".info/connected").on("value", (snap) => {
   if (snap.val() === true) {
     console.log("সার্ভারের সাথে সংযুক্ত...");
     
-    // কানেক্ট হওয়া মাত্রই স্ট্যাটাস অনলাইন নিশ্চিত করা
+    // কানেক্ট হওয়া মাত্রই বর্তমান স্ট্যাটাস অনলাইন নিশ্চিত করা
     currentRef.update({ status: "Online", time: getBDTime() });
 
-    // বিদ্যুৎ চলে গেলে বা নেট ডিসকানেক্ট হলে Firebase নিজে থেকেই এই ডাটা পাঠিয়ে দিবে
+    // বিদ্যুৎ চলে গেলে Firebase স্বয়ংক্রিয়ভাবে নিচের কাজগুলো করবে
     const disconnectTime = getBDTime();
+    
+    // লাইভ স্ট্যাটাস অফলাইন করা
     currentRef.onDisconnect().update({ status: "Offline", time: disconnectTime });
-    statusRef.onDisconnect().push({ 
+    
+    // লগে অফলাইন এন্ট্রি সেভ করার সঠিক পদ্ধতি
+    const offlinePushRef = statusRef.push(); // আগে একটি আইডি জেনারেট করে নিতে হবে
+    offlinePushRef.onDisconnect().set({ 
         time: disconnectTime, 
         status: "Offline", 
         location: "Kalkini" 
@@ -39,27 +44,26 @@ db.ref(".info/connected").on("value", (snap) => {
 async function checkPower() {
     const timestamp = getBDTime();
     try {
-        // google.com-এর বদলে 1.1.1.1 (Cloudflare) চেক করা বেশি স্ট্যাবল
+        // স্ট্যাবল চেকিংয়ের জন্য Cloudflare DNS ব্যবহার
         await axios.get('https://1.1.1', { timeout: 8000 });
         
         errorCount = 0; 
 
         if (lastStatus === "Offline") {
-            // যদি আগে অফলাইন থাকে এবং এখন কারেন্ট আসে তবেই লগ পুশ হবে
             await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
-            await currentRef.set({ status: "Online", time: timestamp });
+            await currentRef.update({ status: "Online", time: timestamp });
             console.log(`[${timestamp}] বিদ্যুৎ ফিরেছে।`);
             lastStatus = "Online";
         } else {
-            // শুধুমাত্র লাইভ টাইম আপডেট (লগ জ্যাম হবে না)
+            // শুধুমাত্র লাইভ সময় আপডেট (লগ জ্যাম হবে না)
             await currentRef.update({ time: timestamp, status: "Online" });
         }
     } catch (error) {
         errorCount++;
-        // যদি টানা ৩ বার (৯০ সেকেন্ড) নেট না পায়, তবে সেটিকে অফলাইন হিসেবে ধরে নিবে
+        // যদি টানা ৩ বার (৯০ সেকেন্ড) নেট না পায়, তবে অফলাইন ধরে নিবে
         if (errorCount >= 3 && lastStatus === "Online") {
             lastStatus = "Offline";
-            console.log(`[${timestamp}] সংযোগ বিচ্ছিন্ন।`);
+            console.log(`[${timestamp}] সংযোগ বিচ্ছিন্ন বা বিদ্যুৎ নেই।`);
         }
     }
 }
