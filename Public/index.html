@@ -115,103 +115,84 @@
         }
 
         db.ref('power_status').limitToLast(50).on('value', (snap) => {
-            const data = snap.val();
-            const tableBody = document.getElementById('log-table-body');
-            if (!tableBody) return;
-            tableBody.innerHTML = '';
-            let labels = [], points = [];
+        const data = snap.val();
+        const tableBody = document.getElementById('log-table-body');
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+        let labels = [], points = [];
+        
+        if (data) {
+            const keys = Object.keys(data);
+            const items = keys.map(key => data[key]).filter(i => i && i.time);
             
-                        if (data) {
-                const keys = Object.keys(data);
-                const items = keys.map(key => data[key]).filter(i => i && i.time);
+            // ১. ডাটাবেজের একদম শেষ ডাটা থেকে আজকের তারিখটি চিনে নেওয়া
+            const latestEntry = items[items.length - 1];
+            const todayDateInDB = latestEntry.time.split(',')[0].trim(); // যেমন: 10/5/2026
+
+            let lastRenderedStatus = null; 
+            let tableCount = 0; 
+            let todayOffCount = 0;
+            let todayTotalMinutes = 0;
+
+            for (let i = items.length - 1; i >= 0; i--) {
+                const currentItem = items[i];
+                const previousItem = items[i - 1];
                 
-                if (items.length === 0) return;
+                if (!currentItem || !currentItem.time || !currentItem.status) continue;
 
-                // --- পরিবর্তন এখানে (সিস্টেমের বর্তমান তারিখ নেওয়া হচ্ছে) ---
-                const now = new Date();
-                const d = now.getDate();
-                const m = now.getMonth() + 1;
-                const y = now.getFullYear();
+                if (currentItem.status === lastRenderedStatus) continue;
+                lastRenderedStatus = currentItem.status;
+
+                let duration = "---";
+                let durationMins = 0;
                 
-                // সব ডিভাইসের জন্য দুটি সম্ভাব্য ফরম্যাট (৫/১০/২০২৬ এবং ০৫/১০/২০২৬)
-                const todayStr = `${d}/${m}/${y}`; 
-                const todayStrAlt = `${d < 10 ? '0'+d : d}/${m < 10 ? '0'+m : m}/${y}`;
-                // -------------------------------------------------------
-
-                let lastRenderedStatus = null; 
-                let tableCount = 0; 
-                let todayOffCount = 0;
-                let todayTotalMinutes = 0;
-
-
-                for (let i = items.length - 1; i >= 0; i--) {
-                    const currentItem = items[i];
-                    const previousItem = items[i-1];
+                if (currentItem.status === 'Online' && previousItem && previousItem.status === 'Offline') {
+                    duration = calculateDuration(previousItem.time, currentItem.time);
                     
-                    // ১. ডুপ্লিকেট বাদ দেওয়ার লজিক
-                    if (currentItem.status === lastRenderedStatus) continue;
-                    lastRenderedStatus = currentItem.status;
-
-                    // ২. সময়কাল হিসাব
-                    let duration = "---";
-                    let durationMins = 0;
-                    if (currentItem.status === 'Online' && previousItem && previousItem.status === 'Offline') {
-                        duration = calculateDuration(previousItem.time, currentItem.time);
-                        const s = new Date(previousItem.time.replace(/-/g, "/")).getTime();
-                        const e = new Date(currentItem.time.replace(/-/g, "/")).getTime();
-                        if(!isNaN(s) && !isNaN(e)) durationMins = Math.round(Math.abs(e - s) / 60000);
-                    }
-
-                    // ৩. সামারি হিসাব (সব ডিভাইসের জন্য ১০০% কাজ করবে)
-                    const itemDate = currentItem.time.split(',')[0].trim();
-
-                    // ডাটাবেজের তারিখের ভেতর আজকের দিন, মাস এবং বছর আছে কি না চেক করা
-                    const isToday = itemDate.includes(`${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`) || 
-                                    itemDate.includes(`${now.getDate()}-${now.getMonth() + 1}-${now.getFullYear()}`);
-
-                    if (isToday) {
-                        if (currentItem.status === 'Online' && duration !== "---") {
-                            todayOffCount++;
-                            
-                            // মিনিট ক্যালকুলেশন (৩ মিনিট ফিরিয়ে আনার জন্য)
-                            const start = new Date(previousItem.time.replace(/-/g, "/")).getTime();
-                            const end = new Date(currentItem.time.replace(/-/g, "/")).getTime();
-                            const diff = Math.round(Math.abs(end - start) / 60000);
-                            
-                            if (!isNaN(diff)) {
-                                todayTotalMinutes += diff;
-                            }
-                        }
-                    }
-
-
-
-                    // ৪. টেবিল রেন্ডারিং
-                    if (tableCount < 10) {
-                        const row = `<tr>
-                            <td class="px-4 py-4 font-mono text-[10px] text-gray-500">${currentItem.time}</td>
-                            <td class="px-4 py-4"><span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${currentItem.status}</span></td>
-                            <td class="px-4 py-4 text-[10px] font-bold text-right ${currentItem.status === 'Online' ? 'text-red-500' : 'text-gray-300'}">${currentItem.status === 'Online' ? duration : '---'}</td>
-                        </tr>`;
-                        tableBody.innerHTML += row;
-                        labels.unshift(currentItem.time);
-                        points.unshift(currentItem.status === 'Online' ? 1 : 0);
-                        tableCount++;
+                    const start = new Date(previousItem.time.replace(/-/g, "/")).getTime();
+                    const end = new Date(currentItem.time.replace(/-/g, "/")).getTime();
+                    if(!isNaN(start) && !isNaN(end)) {
+                        durationMins = Math.round(Math.abs(end - start) / 60000);
                     }
                 }
-                
-                document.getElementById('today-count').innerText = todayOffCount + " বার";
-                document.getElementById('today-total-time').innerText = todayTotalMinutes + " মি.";
-                const avg = todayOffCount > 0 ? Math.round(todayTotalMinutes / todayOffCount) : 0;
-                document.getElementById('today-avg-time').innerText = avg + " মি.";
 
-                if (powerChart) {
-                    powerChart.data.labels = labels;
-                    powerChart.data.datasets[0].data = points;
-                    powerChart.update();
+                // ২. তারিখ চেক করার সবচেয়ে শক্তিশালী লজিক
+                if (currentItem.time.includes(todayDateInDB)) {
+                    if (currentItem.status === 'Online' && duration !== "---") {
+                        todayOffCount++;
+                        todayTotalMinutes += durationMins;
+                    }
+                }
+
+                if (tableCount < 10) {
+                    const row = `<tr>
+                        <td class="px-4 py-4 font-mono text-[10px] text-gray-500">${currentItem.time}</td>
+                        <td class="px-4 py-4"><span class="px-2 py-0.5 rounded text-[9px] font-bold uppercase ${currentItem.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${currentItem.status}</span></td>
+                        <td class="px-4 py-4 text-[10px] font-bold text-right ${currentItem.status === 'Online' ? 'text-red-500' : 'text-gray-300'}">${currentItem.status === 'Online' ? duration : '---'}</td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                    labels.unshift(currentItem.time);
+                    points.unshift(currentItem.status === 'Online' ? 1 : 0);
+                    tableCount++;
                 }
             }
-        });
+            
+            // ৩. কার্ড আপডেট (ঘণ্টা ও মিনিটে রূপান্তর)
+            const totalHours = Math.floor(todayTotalMinutes / 60);
+            const remainingMins = todayTotalMinutes % 60;
+
+            document.getElementById('today-count').innerText = todayOffCount + " বার";
+            document.getElementById('today-total-time').innerText = 
+                totalHours > 0 ? `${totalHours}ঘ. ${remainingMins}মি.` : `${todayTotalMinutes} মি.`;
+
+            const avg = todayOffCount > 0 ? Math.round(todayTotalMinutes / todayOffCount) : 0;
+            document.getElementById('today-avg-time').innerText = avg + " মি.";
+
+            powerChart.data.labels = labels;
+            powerChart.data.datasets[0].data = points;
+            powerChart.update();
+        }
+    });
 
     </script>
 </body>
