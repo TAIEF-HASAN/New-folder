@@ -200,77 +200,95 @@ function calculateDuration(startTimeStr, endTimeStr) {
 }
 
 // --- ৩. হিস্টোরি, কার্ড এবং গ্রাফ আপডেট লজিক ---
-db.ref('power_status').limitToLast(30).on('value', (snap) => {
+db.ref('power_status').limitToLast(50).on('value', (snap) => {
     const data = snap.val();
     const tableBody = document.getElementById('log-table-body');
     if (!tableBody) return;
     
     tableBody.innerHTML = '';
     let labels = [], points = [];
-    let totalCuts = 0;
-    let totalMinutes = 0;
+    
+    // এনালিটিক্স ভেরিয়েবল
+    let todayCuts = 0;
+    let todayMinutes = 0;
+    const todayDate = new Date().toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
 
     if (data) {
         const keys = Object.keys(data);
         const items = keys.map(key => data[key]).filter(i => i && i.time);
         
-        let lastStatus = null;
-
-        // টেবিল এবং এনালিটিক্স এর জন্য লুপ
+        // ১. এনালিটিক্স ক্যালকুলেশন (শুধুমাত্র আজকের জন্য)
         items.forEach((current, index) => {
             const previous = items[index - 1];
+            const entryDate = new Date(current.time).toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
 
-            // ১. এনালিটিক্স হিসাব (উপরের ৪টি কার্ডের জন্য)
-            if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                totalCuts++;
-                const start = new Date(previous.time);
-                const end = new Date(current.time);
-                totalMinutes += Math.round((end - start) / 60000);
-            }
-
-            // ২. ডুপ্লিকেট ফিল্টার করে গ্রাফের ডেটা নেওয়া
-            if (current.status !== lastStatus) {
-                labels.push(current.time.split(',')[1]); 
-                points.push(current.status === 'Online' ? 1 : 0);
-                lastStatus = current.status;
+            if (entryDate === todayDate) {
+                if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                    todayCuts++;
+                    const start = new Date(previous.time);
+                    const end = new Date(current.time);
+                    todayMinutes += Math.round((end - start) / 60000);
+                }
             }
         });
 
-        // ৩. কার্ড আপডেট (নিশ্চিত করুন আপনার HTML-এ এই ID-গুলো আছে)
-        if(document.getElementById('total-cuts')) document.getElementById('total-cuts').innerText = `${totalCuts} বার`;
-        if(document.getElementById('total-mins')) document.getElementById('total-mins').innerText = `${totalMinutes} মি.`;
-        if(document.getElementById('avg-mins')) document.getElementById('avg-mins').innerText = totalCuts > 0 ? `${Math.round(totalMinutes/totalCuts)} মি.` : "০ মি.";
+        // ২. কার্ড আপডেট করা
+        document.getElementById('today-count').innerText = `${todayCuts} বার`;
+        document.getElementById('today-total-time').innerText = `${todayMinutes} মি.`;
+        
+        // গড় সময় ক্যালকুলেশন
+        const avgTime = todayCuts > 0 ? Math.round(todayMinutes / todayCuts) : 0;
+        document.getElementById('today-avg-time').innerText = `${avgTime} মি.`;
 
-        // ৪. টেবিল রেন্ডার করা (নতুন ডেটা উপরে)
-        let lastRenderedForTable = null;
+        // ৩. বিদ্যুতের স্থায়িত্ব (Reliability Score) ক্যালকুলেশন
+        // আজকের অতিবাহিত মোট সময় (মিনিটে)
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const totalMinutesPassedToday = Math.floor((now - startOfDay) / 60000);
+        
+        const uptimePercent = totalMinutesPassedToday > 0 
+            ? (((totalMinutesPassedToday - todayMinutes) / totalMinutesPassedToday) * 100).toFixed(1) 
+            : 100;
+        
+        document.getElementById('reliability-score').innerText = `${uptimePercent}%`;
+
+        // ৪. টেবিল এবং গ্রাফ আপডেট (Newest First)
+        let lastStatus = null;
         for (let i = items.length - 1; i >= 0; i--) {
             const current = items[i];
             const previous = items[i - 1];
 
-            if (current.status === lastRenderedForTable) continue;
-            lastRenderedForTable = current.status;
+            // টেবিল রেন্ডার
+            if (current.status !== lastStatus) {
+                let duration = "---";
+                if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                    duration = calculateDuration(previous.time, current.time);
+                }
 
-            let duration = "---";
-            if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                duration = calculateDuration(previous.time, current.time);
+                const row = `<tr>
+                    <td class="px-4 py-4 font-mono text-xs">${current.time}</td>
+                    <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
+                    <td class="px-4 py-4 text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
+                        ${current.status === 'Online' ? 'লোডশেডিং: ' + duration : '---'}
+                    </td>
+                </tr>`;
+                tableBody.innerHTML += row;
+                
+                // গ্রাফের জন্য ডেটা (Unshift ব্যবহার করে সঠিক ক্রম রাখা)
+                labels.unshift(current.time.split(',')[1]); 
+                points.unshift(current.status === 'Online' ? 1 : 0);
+                
+                lastStatus = current.status;
             }
-
-            const row = `<tr>
-                <td class="px-4 py-4 font-mono text-xs">${current.time}</td>
-                <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
-                <td class="px-4 py-4 text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
-                    ${current.status === 'Online' ? 'লোডশেডিং: ' + duration : '---'}
-                </td>
-            </tr>`;
-            tableBody.innerHTML += row;
         }
 
-        // ৫. গ্রাফ আপডেট
+        // ৫. গ্রাফ রিফ্রেশ
         powerChart.data.labels = labels;
         powerChart.data.datasets[0].data = points;
         powerChart.update();
     }
 });
+
 
 
     </script>
