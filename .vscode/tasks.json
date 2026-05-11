@@ -1,11 +1,18 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "Auto Commit",
-      "type": "shell",
-      "command": "git add .; git commit -m 'Auto-commit'; git push origin main",
-      "group": { "kind": "build", "isDefault": true }
-    }
-  ]
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Auto Commit",
+            "type": "shell",
+            "command": "git add .; git commit -m 'Auto-commit'; git push",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "always",
+                "panel": "new"
+            }
+        }
+    ]
 }
