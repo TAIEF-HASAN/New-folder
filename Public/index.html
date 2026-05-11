@@ -206,6 +206,23 @@
             }
         }
 
+        // ১. গ্লোবাল ফাংশন হিসেবে সবার উপরে এটি রাখুন
+        function getDurationMins(startTime, endTime) {
+            if (!startTime || !endTime) return 0;
+            try {
+                const start = new Date(startTime.replace(/-/g, '/'));
+                const end = new Date(endTime.replace(/-/g, '/'));
+                const diff = Math.abs(end - start);
+                return Math.round(diff / 60000);
+            } catch (e) { 
+                console.error("Duration calculation error:", e);
+                return 0; 
+            }
+        }
+
+        // ২. আপনার বাকি কোড এখান থেকে শুরু হবে (db.ref... ইত্যাদি)
+
+
         // --- ৩. হিস্টোরি, কার্ড এবং গ্রাফ আপডেট লজিক ---
         db.ref('power_status').limitToLast(50).on('value', (snap) => {
             const data = snap.val();
@@ -316,7 +333,7 @@
             }
         });
 
-        // সাপ্তাহিক চার্ট ইনিশিয়েট করা
+        // সাপ্তাহিক চার্ট ইনিশিয়েট করা barchart এর জন্য
         const ctxWeekly = document.getElementById('weeklyBarChart').getContext('2d');
         const weeklyChart = new Chart(ctxWeekly, {
             type: 'bar',
@@ -336,7 +353,7 @@
             }
         });
 
-        // ডেটাবেজ থেকে গত ৭ দিনের হিসাব বের করা
+        // ডেটাবেজ থেকে গত ৭ দিনের হিসাব বের করা 
         db.ref('power_status').on('value', (snap) => {
             const data = snap.val();
             if (!data) return;
