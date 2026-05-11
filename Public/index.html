@@ -1,300 +1,314 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kalkini Power Monitor - Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script> 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
-</head>
-<body class="bg-gray-50 font-sans pb-10">
-    <div class="max-w-2xl mx-auto px-4 mt-6">
-        <!-- হেডার সেকশন -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 text-center mb-5">
-            <h1 class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">কালকিনি পাওয়ার মনিটর</h1>
-            <p class="text-gray-500 text-xs mt-1">রিয়েল-টাইম বিদ্যুৎ পর্যবেক্ষণ ব্যবস্থা</p>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Kalkini Power Monitor - Dashboard</title>
+        <script src="https://cdn.tailwindcss.com"></script> 
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
+    </head>
+    <body class="bg-gray-50 font-sans pb-10">
+        <div class="max-w-2xl mx-auto px-4 mt-6">
+            <!-- হেডার সেকশন -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 text-center mb-5">
+                <h1 class="text-2xl md:text-3xl font-bold text-gray-800 tracking-tight">কালকিনি পাওয়ার মনিটর</h1>
+                <p class="text-gray-500 text-xs mt-1">রিয়েল-টাইম বিদ্যুৎ পর্যবেক্ষণ ব্যবস্থা</p>
+            </div>
+            <!-- কার্ডের গ্রিড: মোবাইলে ২ কলাম, বড় স্ক্রিনে ৪ কলাম -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                <!-- ১. আজকের লোডশেডিং -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                    <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">আজকের লোডশেডিং</p>
+                    <h3 id="today-count" class="text-xl font-black text-gray-800">০ বার</h3>
+                </div>
+                
+                <!-- ২. মোট অফলাইন -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                    <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">মোট অফলাইন</p>
+                    <h3 id="today-total-time" class="text-xl font-black text-red-500">০ মি.</h3>
+                </div>
+
+                <!-- ৩. গড় সময় -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                    <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">গড় সময়</p>
+                    <h3 id="today-avg-time" class="text-xl font-black text-blue-500">০ মি.</h3>
+                </div>
+
+                <!-- ৪. বিদ্যুতের স্থায়িত্ব -->
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
+                    <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">বিদ্যুতের স্থায়িত্ব</p>
+                    <h3 id="reliability-score" class="text-xl font-black text-green-500">100%</h3>
+                </div>
+            </div>
+
+        
+
+            <!-- বর্তমান স্ট্যাটাস কার্ড -->
+            <div id="status-card" class="p-6 md:p-8 rounded-3xl shadow-md text-center transition-all duration-500 mb-6">
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1">বর্তমানে বিদ্যুৎ অবস্থা:</p>
+                <h2 id="current-status" class="text-5xl md:text-6xl font-black uppercase tracking-tighter">Loading...</h2>
+                <p id="status-time" class="text-[11px] mt-3 text-gray-600 font-mono italic opacity-80"></p>
+            </div>
+
+            <!-- গ্রাফ সেকশন -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
+                <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center italic">📊 লোডশেডিং ট্রেন্ড (শেষ ১০টি ইভেন্ট)</h3>
+                <div class="h-[180px] w-full">
+                    <canvas id="powerChart"></canvas>
+                </div>
+            </div>
+
+            <!-- ইতিহাস টেবিল (ফোনের জন্য অপ্টিমাইজড) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-gray-700">📜 সাম্প্রতিক ইতিহাস (Logs)</h3>
+                    <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Live</span>
+                </div>
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse min-w-[320px]">
+                        <thead class="text-[10px] text-gray-400 uppercase bg-gray-50/50">
+                            <tr>
+                                <th class="px-4 py-3 font-semibold">সময়</th>
+                                <th class="px-4 py-3 font-semibold">অবস্থা</th>
+                                <th class="px-4 py-3 font-semibold text-right">সময়কাল</th>
+                            </tr>
+                        </thead>
+                        <tbody id="log-table-body" class="text-[11px] divide-y divide-gray-50 text-gray-600">
+                            <!-- জাভাস্ক্রিপ্ট দিয়ে রো এখানে আসবে -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- একদম নিচে কপিরাইট ফুটার -->
+            <footer class="mt-10 text-center pb-8">
+                <hr class="border-gray-100 mb-6 w-1/2 mx-auto">
+                <p class="text-gray-400 text-[10px] font-medium tracking-widest uppercase">
+                    © 2026 Kalkini Power Monitor | v2.0
+                </p>
+                <p class="text-gray-500 text-xs mt-2">
+                Developed with ❤️ by <a href="আপনার-লিঙ্কডইন-লিঙ্ক" target="_blank" class="font-bold text-blue-600 underline">Md Taief Hasan</a>
+                </p>
+
+                <p class="text-[9px] text-gray-300 mt-1 italic">All Rights Reserved</p>
+            </footer>
+
         </div>
-        <!-- কার্ডের গ্রিড: মোবাইলে ২ কলাম, বড় স্ক্রিনে ৪ কলাম -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <!-- ১. আজকের লোডশেডিং -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-                <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">আজকের লোডশেডিং</p>
-                <h3 id="today-count" class="text-xl font-black text-gray-800">০ বার</h3>
-            </div>
-            
-            <!-- ২. মোট অফলাইন -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-                <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">মোট অফলাইন</p>
-                <h3 id="today-total-time" class="text-xl font-black text-red-500">০ মি.</h3>
-            </div>
 
-            <!-- ৩. গড় সময় -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-                <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">গড় সময়</p>
-                <h3 id="today-avg-time" class="text-xl font-black text-blue-500">০ মি.</h3>
-            </div>
+        
+        <script>
+            const firebaseConfig = {
+                apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
+                authDomain: "kalkinipowermonitor.firebaseapp.com",
+                databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "kalkinipowermonitor",
+                storageBucket: "kalkinipowermonitor.firebasestorage.app",
+                messagingSenderId: "119477481190",
+                appId: "1:119477481190:web:7f3404fcf0b87db388d527"
+            };
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
 
-            <!-- ৪. বিদ্যুতের স্থায়িত্ব -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-center">
-                <p class="text-[9px] uppercase font-bold text-gray-400 mb-1">বিদ্যুতের স্থায়িত্ব</p>
-                <h3 id="reliability-score" class="text-xl font-black text-green-500">100%</h3>
-            </div>
-        </div>
-
-    
-
-        <!-- বর্তমান স্ট্যাটাস কার্ড -->
-        <div id="status-card" class="p-6 md:p-8 rounded-3xl shadow-md text-center transition-all duration-500 mb-6">
-            <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 mb-1">বর্তমানে বিদ্যুৎ অবস্থা:</p>
-            <h2 id="current-status" class="text-5xl md:text-6xl font-black uppercase tracking-tighter">Loading...</h2>
-            <p id="status-time" class="text-[11px] mt-3 text-gray-600 font-mono italic opacity-80"></p>
-        </div>
-
-        <!-- গ্রাফ সেকশন -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 mb-6">
-            <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center italic">📊 লোডশেডিং ট্রেন্ড (শেষ ১০টি ইভেন্ট)</h3>
-            <div class="h-[180px] w-full">
-                <canvas id="powerChart"></canvas>
-            </div>
-        </div>
-
-        <!-- ইতিহাস টেবিল (ফোনের জন্য অপ্টিমাইজড) -->
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                <h3 class="text-sm font-bold text-gray-700">📜 সাম্প্রতিক ইতিহাস (Logs)</h3>
-                <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Live</span>
-            </div>
-            <div class="overflow-x-auto w-full">
-                <table class="w-full text-left border-collapse min-w-[320px]">
-                    <thead class="text-[10px] text-gray-400 uppercase bg-gray-50/50">
-                        <tr>
-                            <th class="px-4 py-3 font-semibold">সময়</th>
-                            <th class="px-4 py-3 font-semibold">অবস্থা</th>
-                            <th class="px-4 py-3 font-semibold text-right">সময়কাল</th>
-                        </tr>
-                    </thead>
-                    <tbody id="log-table-body" class="text-[11px] divide-y divide-gray-50 text-gray-600">
-                        <!-- জাভাস্ক্রিপ্ট দিয়ে রো এখানে আসবে -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <!-- একদম নিচে কপিরাইট ফুটার -->
-        <footer class="mt-10 text-center pb-8">
-            <hr class="border-gray-100 mb-6 w-1/2 mx-auto">
-            <p class="text-gray-400 text-[10px] font-medium tracking-widest uppercase">
-                © 2026 Kalkini Power Monitor | v2.0
-            </p>
-            <p class="text-gray-500 text-xs mt-2">
-            Developed with ❤️ by <a href="আপনার-লিঙ্কডইন-লিঙ্ক" target="_blank" class="font-bold text-blue-600 underline">Md Taief Hasan</a>
-            </p>
-
-            <p class="text-[9px] text-gray-300 mt-1 italic">All Rights Reserved</p>
-        </footer>
-
-    </div>
-
-    
-    <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
-            authDomain: "kalkinipowermonitor.firebaseapp.com",
-            databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "kalkinipowermonitor",
-            storageBucket: "kalkinipowermonitor.firebasestorage.app",
-            messagingSenderId: "119477481190",
-            appId: "1:119477481190:web:7f3404fcf0b87db388d527"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        const ctx = document.getElementById('powerChart').getContext('2d');
-        const powerChart = new Chart(ctx, {
-        type: 'line',
-        data: { 
-            labels: [], 
-            datasets: [{ 
-                label: 'পাওয়ার স্ট্যাটাস', 
-                data: [], 
-                borderColor: '#3b82f6', 
-                backgroundColor: 'rgba(59, 130, 246, 0.1)', // নিচের অংশ ভরাট করার রঙ
-                fill: true, // নিচের অংশ ফিল করার জন্য
-                stepped: true, 
-                pointRadius: 2,
-                borderWidth: 2
-            }] 
-        },
-        options: { 
-            responsive: true,
-            maintainAspectRatio: false,
-            layout: {
-                padding: {
-                    left: -10, // বামের গ্যাপ কমানোর জন্য
-                    right: 0
-                }
+            const ctx = document.getElementById('powerChart').getContext('2d');
+            const powerChart = new Chart(ctx, {
+            type: 'line',
+            data: { 
+                labels: [], 
+                datasets: [{ 
+                    label: 'পাওয়ার স্ট্যাটাস', 
+                    data: [], 
+                    borderColor: '#3b82f6', 
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)', // নিচের অংশ ভরাট করার রঙ
+                    fill: true, // নিচের অংশ ফিল করার জন্য
+                    stepped: true, 
+                    pointRadius: 2,
+                    borderWidth: 2
+                }] 
             },
-            scales: { 
-                y: { 
-                    min: 0, 
-                    max: 1.2, 
-                    ticks: { stepSize: 1, display: false }, // Y অক্ষের বাড়তি লেখা লুকানোর জন্য
-                    grid: { display: false } 
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: {
-                        maxRotation: 45,
-                        minRotation: 45,
-                        font: { size: 8 }
+            options: { 
+                responsive: true,
+                maintainAspectRatio: false,
+                layout: {
+                    padding: {
+                        left: -10, // বামের গ্যাপ কমানোর জন্য
+                        right: 0
                     }
-                }
-            },
-            plugins: {
-                legend: { display: false } // উপরের লেজেন্ড লুকানোর জন্য যাতে জায়গা বাঁচে
-            }
-        }
-    });
-
-
-        // --- ১. বর্তমান স্ট্যাটাস আপডেট লজিক ---
-db.ref('current_status').on('value', (snap) => {
-    const data = snap.val();
-    if (data) {
-        // last_update চেক করা হয়েছে যাতে undefined না আসে
-        const displayTime = data.last_update || data.time || "অজানা";
-        
-        document.getElementById('current-status').innerText = data.status;
-        document.getElementById('status-time').innerText = `শেষ আপডেট: ${displayTime}`;
-        
-        // কার্ডের ব্যাকগ্রাউন্ড ও টেক্সট কালার পরিবর্তন
-        const card = document.getElementById('status-card');
-        const statusText = document.getElementById('current-status');
-        
-        if (data.status === "Online") {
-            card.className = "p-8 rounded-2xl shadow-md text-center bg-green-50 border-2 border-green-200";
-            statusText.className = "text-5xl font-black text-green-600";
-        } else {
-            card.className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
-            statusText.className = "text-5xl font-black text-red-600";
-        }
-    }
-});
-
-// --- ২. সময় গণনা ফাংশন (উন্নত সংস্করণ) ---
-function calculateDuration(startTimeStr, endTimeStr) {
-    if (!startTimeStr || !endTimeStr) return "---";
-    try {
-        const start = new Date(startTimeStr);
-        const end = new Date(endTimeStr);
-        const diffMs = Math.abs(end - start);
-        const diffMins = Math.round(diffMs / 60000);
-        
-        if (diffMins < 1) return "কয়েক সেকেন্ড";
-        if (diffMins < 60) return `${diffMins} মি.`;
-        return `${Math.floor(diffMins / 60)}ঘ. ${diffMins % 60}মি.`;
-    } catch (e) {
-        return "---";
-    }
-}
-
-// --- ৩. হিস্টোরি, কার্ড এবং গ্রাফ আপডেট লজিক ---
-db.ref('power_status').limitToLast(50).on('value', (snap) => {
-    const data = snap.val();
-    const tableBody = document.getElementById('log-table-body');
-    if (!tableBody) return;
-    
-    tableBody.innerHTML = '';
-    let labels = [], points = [];
-    
-    // এনালিটিক্স ভেরিয়েবল
-    let todayCuts = 0;
-    let todayMinutes = 0;
-    const todayDate = new Date().toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
-
-    if (data) {
-        const keys = Object.keys(data);
-        const items = keys.map(key => data[key]).filter(i => i && i.time);
-        
-        // ১. এনালিটিক্স ক্যালকুলেশন (শুধুমাত্র আজকের জন্য)
-        items.forEach((current, index) => {
-            const previous = items[index - 1];
-            const entryDate = new Date(current.time).toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
-
-            if (entryDate === todayDate) {
-                if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                    todayCuts++;
-                    const start = new Date(previous.time);
-                    const end = new Date(current.time);
-                    todayMinutes += Math.round((end - start) / 60000);
+                },
+                scales: { 
+                    y: { 
+                        min: 0, 
+                        max: 1.2, 
+                        ticks: { stepSize: 1, display: false }, // Y অক্ষের বাড়তি লেখা লুকানোর জন্য
+                        grid: { display: false } 
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: { size: 8 }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false } // উপরের লেজেন্ড লুকানোর জন্য যাতে জায়গা বাঁচে
                 }
             }
         });
 
-        // ২. কার্ড আপডেট করা
-        document.getElementById('today-count').innerText = `${todayCuts} বার`;
-        document.getElementById('today-total-time').innerText = `${todayMinutes} মি.`;
-        
-        // গড় সময় ক্যালকুলেশন
-        const avgTime = todayCuts > 0 ? Math.round(todayMinutes / todayCuts) : 0;
-        document.getElementById('today-avg-time').innerText = `${avgTime} মি.`;
 
-        // ৩. বিদ্যুতের স্থায়িত্ব (Reliability Score) ক্যালকুলেশন
-        // আজকের অতিবাহিত মোট সময় (মিনিটে)
-        const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const totalMinutesPassedToday = Math.floor((now - startOfDay) / 60000);
-        
-        const uptimePercent = totalMinutesPassedToday > 0 
-            ? (((totalMinutesPassedToday - todayMinutes) / totalMinutesPassedToday) * 100).toFixed(1) 
-            : 100;
-        
-        document.getElementById('reliability-score').innerText = `${uptimePercent}%`;
-
-        // ৪. টেবিল এবং গ্রাফ আপডেট (Newest First)
-        
-        let lastRenderedForTable = null; // লুপের ঠিক উপরে এটি নিশ্চিত করুন
-        for (let i = items.length - 1; i >= 0; i--) {
-            const current = items[i];
-            const previous = items[i - 1];
-
-            // ডুপ্লিকেট এন্ট্রি ফিল্টার
-            if (current.status === lastRenderedForTable) continue;
-            lastRenderedForTable = current.status;
-
-            // সময়কাল (Duration) হিসাব
-            let durationText = "---";
-            if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                durationText = calculateDuration(previous.time, current.time);
+            // --- ১. বর্তমান স্ট্যাটাস আপডেট লজিক ---
+        db.ref('current_status').on('value', (snap) => {
+            const data = snap.val();
+            if (data) {
+                // last_update চেক করা হয়েছে যাতে undefined না আসে
+                const displayTime = data.last_update || data.time || "অজানা";
+                
+                document.getElementById('current-status').innerText = data.status;
+                document.getElementById('status-time').innerText = `শেষ আপডেট: ${displayTime}`;
+                
+                // কার্ডের ব্যাকগ্রাউন্ড ও টেক্সট কালার পরিবর্তন
+                const card = document.getElementById('status-card');
+                const statusText = document.getElementById('current-status');
+                
+                if (data.status === "Online") {
+                    card.className = "p-8 rounded-2xl shadow-md text-center bg-green-50 border-2 border-green-200";
+                    statusText.className = "text-5xl font-black text-green-600";
+                } else {
+                    card.className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
+                    statusText.className = "text-5xl font-black text-red-600";
+                }
             }
+        });
 
-            // টেবিল রো তৈরি
-            const row = `<tr>
-                <td class="px-4 py-4 font-mono text-[10px] md:text-xs">${current.time}</td>
-                <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
-                <td class="px-4 py-4 text-[10px] md:text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
-                    ${current.status === 'Online' ? 'লোডশেডিং: ' + durationText : '---'}
-                </td>
-            </tr>`;
-            tableBody.innerHTML += row;
-            
-            // গ্রাফের জন্য ডেটা (সময় এবং পয়েন্ট)
-            const timePart = current.time.includes(',') ? current.time.split(',')[1] : current.time;
-            labels.unshift(timePart); 
-            points.unshift(current.status === 'Online' ? 1 : 0);
+        // --- ২. সময় গণনা ফাংশন (উন্নত সংস্করণ) ---
+        function calculateDuration(startTimeStr, endTimeStr) {
+            if (!startTimeStr || !endTimeStr) return "---";
+            try {
+                const start = new Date(startTimeStr);
+                const end = new Date(endTimeStr);
+                const diffMs = Math.abs(end - start);
+                const diffMins = Math.round(diffMs / 60000);
+                
+                if (diffMins < 1) return "কয়েক সেকেন্ড";
+                if (diffMins < 60) return `${diffMins} মি.`;
+                return `${Math.floor(diffMins / 60)}ঘ. ${diffMins % 60}মি.`;
+            } catch (e) {
+                return "---";
+            }
         }
 
-        // গ্রাফ আপডেট (ID এবং Data ঠিকমতো পুশ করা)
-        powerChart.data.labels = labels;
-        powerChart.data.datasets[0].data = points; // নিশ্চিত করুন [0] আছে
-        powerChart.update();
+        // --- ৩. হিস্টোরি, কার্ড এবং গ্রাফ আপডেট লজিক ---
+        db.ref('power_status').limitToLast(50).on('value', (snap) => {
+            const data = snap.val();
+            const tableBody = document.getElementById('log-table-body');
+            if (!tableBody) return;
+            
+            tableBody.innerHTML = '';
+            let labels = [], points = [];
+            
+            // এনালিটিক্স ভেরিয়েবল
+            let todayCuts = 0;
+            let todayMinutes = 0;
+            const todayDate = new Date().toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
 
-    }
-});
+            if (data) {
+                const keys = Object.keys(data);
+                const items = keys.map(key => data[key]).filter(i => i && i.time);
+                
+                // ১. এনালিটিক্স ক্যালকুলেশন (শুধুমাত্র আজকের জন্য)
+                items.forEach((current, index) => {
+                    const previous = items[index - 1];
+                    const entryDate = new Date(current.time).toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
+
+                    if (entryDate === todayDate) {
+                        if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                            todayCuts++;
+                            const start = new Date(previous.time);
+                            const end = new Date(current.time);
+                            todayMinutes += Math.round((end - start) / 60000);
+                        }
+                    }
+                });
+
+                // ২. কার্ড আপডেট করা
+                document.getElementById('today-count').innerText = `${todayCuts} বার`;
+                document.getElementById('today-total-time').innerText = `${todayMinutes} মি.`;
+                
+                // গড় সময় ক্যালকুলেশন
+                const avgTime = todayCuts > 0 ? Math.round(todayMinutes / todayCuts) : 0;
+                document.getElementById('today-avg-time').innerText = `${avgTime} মি.`;
+
+                // ৩. বিদ্যুতের স্থায়িত্ব (Reliability Score) ক্যালকুলেশন
+                // আজকের অতিবাহিত মোট সময় (মিনিটে)
+                const now = new Date();
+                const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                const totalMinutesPassedToday = Math.floor((now - startOfDay) / 60000);
+                
+                const uptimePercent = totalMinutesPassedToday > 0 
+                    ? (((totalMinutesPassedToday - todayMinutes) / totalMinutesPassedToday) * 100).toFixed(1) 
+                    : 100;
+                
+                document.getElementById('reliability-score').innerText = `${uptimePercent}%`;
+
+                // ৪. টেবিল এবং গ্রাফ আপডেট (Newest First)
+                
+                        // টেবিল এবং গ্রাফ রেন্ডার করার জন্য লুপ (Newest First)
+                let lastRenderedForTable = null;
+
+                for (let i = items.length - 1; i >= 0; i--) {
+                    const current = items[i];
+                    const previous = items[i - 1];
+
+                    if (current.status === lastRenderedForTable) continue;
+                    lastRenderedForTable = current.status;
+
+                    let durationText = "---";
+                    // ডিউরেশন ক্যালকুলেশন ফিক্স
+                    if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                        try {
+                            // কমা এবং স্পেস হ্যান্ডেল করে ডেট অবজেক্ট তৈরি
+                            const start = new Date(previous.time.replace(',', ''));
+                            const end = new Date(current.time.replace(',', ''));
+                            
+                            const diffMs = Math.abs(end - start);
+                            const diffMins = Math.round(diffMs / 60000);
+                            
+                            if (diffMins < 1) durationText = "কয়েক সেকেন্ড";
+                            else if (diffMins < 60) durationText = `${diffMins} মি.`;
+                            else durationText = `${Math.floor(diffMins / 60)}ঘ. ${diffMins % 60}মি.`;
+                        } catch (e) {
+                            durationText = "Error";
+                        }
+                    }
+
+                    const row = `<tr>
+                        <td class="px-4 py-4 font-mono text-[10px] md:text-xs">${current.time}</td>
+                        <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
+                        <td class="px-4 py-4 text-[10px] md:text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
+                            ${current.status === 'Online' ? 'লোডশেডিং: ' + durationText : '---'}
+                        </td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                    
+                    // গ্রাফ ডেটা
+                    const timeOnly = current.time.includes(',') ? current.time.split(',')[1] : current.time;
+                    labels.unshift(timeOnly); 
+                    points.unshift(current.status === 'Online' ? 1 : 0);
+                }
+
+                // গ্রাফ আপডেট - datasets[0] ব্যবহার করা নিরাপদ
+                if (powerChart && powerChart.data.datasets[0]) {
+                    powerChart.data.labels = labels;
+                    powerChart.data.datasets[0].data = points;
+                    powerChart.update();
+                }
 
 
+            }
+        });
 
-    </script>
-</body>
+        </script>
+    </body>
 </html>
