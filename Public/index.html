@@ -354,28 +354,42 @@
         });
 
         // ডেটাবেজ থেকে গত ৭ দিনের হিসাব বের করা 
+        // সাপ্তাহিক চার্ট আপডেট লজিক
         db.ref('power_status').on('value', (snap) => {
             const data = snap.val();
             if (!data) return;
 
-            const items = Object.values(data);
-            const weeklySummary = {}; // { "5/11/2026": 41, "5/10/2026": 20 }
+            const items = Object.values(data).filter(i => i.time);
+            const weeklySummary = {}; 
 
             items.forEach((current, index) => {
                 const previous = items[index - 1];
+                
                 if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                    const dateKey = new Date(current.time).toLocaleDateString("en-BD");
+                    // ১. তারিখ আলাদা করা (কমা দিয়ে ভাগ করে শুধু প্রথম অংশ নেওয়া)
+                    // এটি "5/11/2026, 10:40:49 AM" থেকে "5/11/2026" বের করবে
+                    const dateOnly = current.time.split(',')[0].trim();
+                    
+                    // ২. ডিউরেশন বের করা
                     const mins = getDurationMins(previous.time, current.time);
                     
-                    weeklySummary[dateKey] = (weeklySummary[dateKey] || 0) + mins;
+                    if (mins > 0) {
+                        weeklySummary[dateOnly] = (weeklySummary[dateOnly] || 0) + mins;
+                    }
                 }
             });
 
-            // চার্ট আপডেট করা (শেষ ৭ দিন)
-            weeklyChart.data.labels = Object.keys(weeklySummary).slice(-7);
-            weeklyChart.data.datasets[0].data = Object.values(weeklySummary).slice(-7);
-            weeklyChart.update();
+            // ৩. চার্টে ডেটা পুশ করা
+            const finalLabels = Object.keys(weeklySummary);
+            const finalData = Object.values(weeklySummary);
+
+            if (finalLabels.length > 0) {
+                weeklyChart.data.labels = finalLabels;
+                weeklyChart.data.datasets[0].data = finalData; // datasets[0] ব্যবহার করা হয়েছে
+                weeklyChart.update();
+            }
         });
+
 
 
         </script>
