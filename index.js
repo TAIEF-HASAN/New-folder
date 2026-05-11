@@ -48,9 +48,19 @@ async function checkPower() {
     }
 }
 
-// ফাইলটি রান হওয়ার সাথে সাথে একবার চেক করবে
+// ১. শুরুতেই ডাটাবেজ থেকে শেষ স্ট্যাটাসটি জেনে নেওয়া
 console.log("🚀 Power Monitor Starting...");
-checkPower();
 
-// প্রতি ৩০ সেকেন্ড পরপর চেক করবে
-setInterval(checkPower, 30000);
+currentRef.once('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        lastStatus = data.status;
+        console.log(`[SYSTEM] গত স্ট্যাটাস ছিল: ${lastStatus}`);
+    }
+
+    // ডাটাবেজ থেকে স্ট্যাটাস পাওয়ার পরেই কেবল চেক করা শুরু হবে
+    // এর ফলে 'null' স্ট্যাটাস নিয়ে ডুপ্লিকেট ডাটা ঢোকার সুযোগ থাকবে না
+    checkPower(); // প্রথমবার রান
+    setInterval(checkPower, 30000); // এরপর প্রতি ৩০ সেকেন্ডে
+});
+
