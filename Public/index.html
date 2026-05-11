@@ -60,6 +60,13 @@
                 </div>
             </div>
 
+            <!-- সপ্তাহের বার চার্ট সেকশন -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+            <p class="text-xs uppercase font-bold text-gray-400 mb-4 text-center">📊 গত ৭ দিনের লোডশেডিং চিত্র (মিনিটে)</p>
+            <canvas id="weeklyBarChart" height="150"></canvas>
+            </div>
+
+
             <!-- ইতিহাস টেবিল (ফোনের জন্য অপ্টিমাইজড) -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
@@ -308,6 +315,51 @@
 
             }
         });
+
+        // সাপ্তাহিক চার্ট ইনিশিয়েট করা
+        const ctxWeekly = document.getElementById('weeklyBarChart').getContext('2d');
+        const weeklyChart = new Chart(ctxWeekly, {
+            type: 'bar',
+            data: {
+                labels: [], // দিনগুলো এখানে আসবে
+                datasets: [{
+                    label: 'মিনিট',
+                    data: [], // লোডশেডিং সময় এখানে আসবে
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: '#3b82f6',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+
+        // ডেটাবেজ থেকে গত ৭ দিনের হিসাব বের করা
+        db.ref('power_status').on('value', (snap) => {
+            const data = snap.val();
+            if (!data) return;
+
+            const items = Object.values(data);
+            const weeklySummary = {}; // { "5/11/2026": 41, "5/10/2026": 20 }
+
+            items.forEach((current, index) => {
+                const previous = items[index - 1];
+                if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                    const dateKey = new Date(current.time).toLocaleDateString("en-BD");
+                    const mins = getDurationMins(previous.time, current.time);
+                    
+                    weeklySummary[dateKey] = (weeklySummary[dateKey] || 0) + mins;
+                }
+            });
+
+            // চার্ট আপডেট করা (শেষ ৭ দিন)
+            weeklyChart.data.labels = Object.keys(weeklySummary).slice(-7);
+            weeklyChart.data.datasets[0].data = Object.values(weeklySummary).slice(-7);
+            weeklyChart.update();
+        });
+
 
         </script>
     </body>
