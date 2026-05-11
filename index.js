@@ -10,6 +10,8 @@ admin.initializeApp({
 const db = admin.database();
 const statusRef = db.ref("power_status"); 
 const currentRef = db.ref("current_status"); 
+const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});// ১. সময়ের ফাংশন
+
 
 let lastStatus = null; // এটি ডুপ্লিকেট রোধ করবে
 
@@ -27,6 +29,8 @@ currentRef.once('value', (snapshot) => {
 
 async function checkPower() {
     const timestamp = getBDTime();
+    console.log(`[${timestamp}] Checking connection...`);
+
     try {
         await axios.get('https://google.com', { timeout: 8000 });
         
@@ -35,10 +39,11 @@ async function checkPower() {
             await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
             await currentRef.set({ status: "Online", last_update: timestamp });
             lastStatus = "Online";
-            console.log(`✅ [${timestamp}] বিদ্যুৎ এসেছে।`);
+            console.log("✅ STATUS: ONLINE (Database Updated)");
         } else {
-            // ডুপ্লিকেট না পাঠিয়ে শুধু হার্টবিট আপডেট করবে
+            // হার্টবিট সচল রাখতে শুধু সময় আপডেট
             await currentRef.child("last_update").set(timestamp);
+            console.log("🟢 SYSTEM: STILL ONLINE");
         }
     } catch (error) {
         // শুধু তখনই Offline পাঠাবে যদি আগে Online থাকতো
@@ -46,7 +51,7 @@ async function checkPower() {
             await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
             await currentRef.set({ status: "Offline", last_update: timestamp });
             lastStatus = "Offline";
-            console.log(`⚠️ [${timestamp}] বিদ্যুৎ চলে গেছে।`);
+            console.log("⚠️ STATUS: OFFLINE (Database Updated)");
         }
     }
 }
