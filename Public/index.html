@@ -253,39 +253,43 @@ db.ref('power_status').limitToLast(50).on('value', (snap) => {
         document.getElementById('reliability-score').innerText = `${uptimePercent}%`;
 
         // ৪. টেবিল এবং গ্রাফ আপডেট (Newest First)
-        let lastStatus = null;
+        
+        let lastRenderedForTable = null; // লুপের ঠিক উপরে এটি নিশ্চিত করুন
         for (let i = items.length - 1; i >= 0; i--) {
             const current = items[i];
             const previous = items[i - 1];
 
-            // টেবিল রেন্ডার
-            if (current.status !== lastStatus) {
-                let duration = "---";
-                if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                    duration = calculateDuration(previous.time, current.time);
-                }
+            // ডুপ্লিকেট এন্ট্রি ফিল্টার
+            if (current.status === lastRenderedForTable) continue;
+            lastRenderedForTable = current.status;
 
-                const row = `<tr>
-                    <td class="px-4 py-4 font-mono text-xs">${current.time}</td>
-                    <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
-                    <td class="px-4 py-4 text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
-                        ${current.status === 'Online' ? 'লোডশেডিং: ' + duration : '---'}
-                    </td>
-                </tr>`;
-                tableBody.innerHTML += row;
-                
-                // গ্রাফের জন্য ডেটা (Unshift ব্যবহার করে সঠিক ক্রম রাখা)
-                labels.unshift(current.time.split(',')[1]); 
-                points.unshift(current.status === 'Online' ? 1 : 0);
-                
-                lastStatus = current.status;
+            // সময়কাল (Duration) হিসাব
+            let durationText = "---";
+            if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                durationText = calculateDuration(previous.time, current.time);
             }
+
+            // টেবিল রো তৈরি
+            const row = `<tr>
+                <td class="px-4 py-4 font-mono text-[10px] md:text-xs">${current.time}</td>
+                <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
+                <td class="px-4 py-4 text-[10px] md:text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
+                    ${current.status === 'Online' ? 'লোডশেডিং: ' + durationText : '---'}
+                </td>
+            </tr>`;
+            tableBody.innerHTML += row;
+            
+            // গ্রাফের জন্য ডেটা (সময় এবং পয়েন্ট)
+            const timePart = current.time.includes(',') ? current.time.split(',')[1] : current.time;
+            labels.unshift(timePart); 
+            points.unshift(current.status === 'Online' ? 1 : 0);
         }
 
-        // ৫. গ্রাফ রিফ্রেশ
+        // গ্রাফ আপডেট (ID এবং Data ঠিকমতো পুশ করা)
         powerChart.data.labels = labels;
-        powerChart.data.datasets[0].data = points;
+        powerChart.data.datasets[0].data = points; // নিশ্চিত করুন [0] আছে
         powerChart.update();
+
     }
 });
 
