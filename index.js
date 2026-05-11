@@ -18,34 +18,33 @@ const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhak
 async function checkPower() {
     const timestamp = getBDTime();
     
-    try {
-        // ১.১.১.১ দ্রুত রেসপন্স দেয় এবং ব্লকিং কম হয়
-        await axios.get('https://1.1.1', { timeout: 10000 });
+    async function checkPower() {
+    const timestamp = getBDTime();
+    
+        try {
+            // গুগল চেক করছি (সবথেকে নির্ভরযোগ্য)
+            await axios.get('https://google.com', { 
+                timeout: 15000,
+                headers: { 'User-Agent': 'Mozilla/5.0' } // ব্রাউজার হিসেবে পরিচয় দিবে
+            });
 
-        if (lastStatus !== "Online") {
-            // যদি আগে অফলাইন থাকে তবেই নতুন এন্ট্রি করবে (No Duplicate)
-            await statusRef.push({ 
-                time: timestamp, 
-                status: "Online", 
-                location: "Kalkini" 
-            });
-            await currentRef.set({ status: "Online", time: timestamp });
-            console.log(`[${timestamp}] Power is ON`);
-            lastStatus = "Online";
-        } else {
-            // শুধু সময় আপডেট করবে ড্যাশবোর্ডের জন্য
-            await currentRef.child("time").set(timestamp);
-        }
-    } catch (error) {
-        if (lastStatus !== "Offline") {
-            await statusRef.push({ 
-                time: timestamp, 
-                status: "Offline", 
-                location: "Kalkini" 
-            });
-            await currentRef.set({ status: "Offline", time: timestamp });
-            console.log(`[${timestamp}] Power is OFF`);
-            lastStatus = "Offline";
+            if (lastStatus !== "Online") {
+                await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
+                await currentRef.set({ status: "Online", time: timestamp });
+                console.log(`[${timestamp}] Success: Internet/Power is ON`);
+                lastStatus = "Online";
+            } else {
+                await currentRef.child("time").set(timestamp);
+            }
+        } catch (error) {
+            // এরর মেসেজটি টার্মিনালে দেখাবে কেন ফেইল করছে
+            console.log(`[${timestamp}] Connection Failed: ${error.message}`);
+            
+            if (lastStatus !== "Offline") {
+                await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
+                await currentRef.set({ status: "Offline", time: timestamp });
+                lastStatus = "Offline";
+            }
         }
     }
 }
