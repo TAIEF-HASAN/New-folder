@@ -11,42 +11,46 @@ const db = admin.database();
 const statusRef = db.ref("power_status"); 
 const currentRef = db.ref("current_status"); 
 
-let lastStatus = null; 
+let lastStatus = null; // এটি ডুপ্লিকেট রোধ করবে
 
-const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
+// শুরুতে ডেটাবেজ থেকে শেষ স্ট্যাটাসটি জেনে নেওয়া
+currentRef.once('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        lastStatus = data.status;
+        console.log(`[SYSTEM] আগের স্ট্যাটাস ছিল: ${lastStatus}`);
+    }
+    // স্ট্যাটাস জানার পর মনিটরিং শুরু
+    checkPower();
+    setInterval(checkPower, 30000); 
+});
 
-// --- পাওয়ার চেক করার প্রধান ফাংশন ---
 async function checkPower() {
     const timestamp = getBDTime();
-    console.log(`[${timestamp}] Checking connection...`); // এই লাইনটি এখন কনসোলে দেখাবে
-
     try {
-        // গুগলের সবথেকে ফাস্ট সার্ভিস চেক
-        await axios.get('https://google.com', { 
-            timeout: 8000 
-        });
-
+        await axios.get('https://google.com', { timeout: 8000 });
+        
+        // শুধু তখনই Online পাঠাবে যদি আগে Offline থাকতো
         if (lastStatus !== "Online") {
             await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
             await currentRef.set({ status: "Online", last_update: timestamp });
-            console.log("✅ STATUS: ONLINE (Database Updated)");
             lastStatus = "Online";
+            console.log(`✅ [${timestamp}] বিদ্যুৎ এসেছে।`);
         } else {
-            // লাইভ হার্টবিট আপডেট
+            // ডুপ্লিকেট না পাঠিয়ে শুধু হার্টবিট আপডেট করবে
             await currentRef.child("last_update").set(timestamp);
-            console.log("🟢 SYSTEM: STILL ONLINE");
         }
     } catch (error) {
-        console.log(`❌ ERROR: ${error.message}`);
-        
+        // শুধু তখনই Offline পাঠাবে যদি আগে Online থাকতো
         if (lastStatus !== "Offline") {
             await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
             await currentRef.set({ status: "Offline", last_update: timestamp });
-            console.log("⚠️ STATUS: OFFLINE (Database Updated)");
             lastStatus = "Offline";
+            console.log(`⚠️ [${timestamp}] বিদ্যুৎ চলে গেছে।`);
         }
     }
 }
+
 
 // ১. শুরুতেই ডাটাবেজ থেকে শেষ স্ট্যাটাসটি জেনে নেওয়া
 console.log("🚀 Power Monitor Starting...");

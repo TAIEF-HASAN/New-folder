@@ -189,6 +189,32 @@
             }
         });
 
+        // --- হার্টবিট চেক লজিক (বিদ্যুৎ গেলে দ্রুত অফলাইন দেখানোর জন্য) ---
+        setInterval(() => {
+            const timeElement = document.getElementById('status-time');
+            if (!timeElement) return;
+
+            const statusTimeText = timeElement.innerText;
+            if (!statusTimeText.includes(':')) return;
+
+            // সময়টি আলাদা করে নেওয়া
+            const rawTime = statusTimeText.replace('শেষ আপডেট: ', '').trim();
+            const lastUpdate = new Date(rawTime.replace(/-/g, '/'));
+            const now = new Date();
+            
+            // যদি ৬০ সেকেন্ডের বেশি সময় ধরে কোনো রেসপন্স না আসে
+            const diffInSeconds = Math.floor((now - lastUpdate) / 1000);
+            
+            if (diffInSeconds > 60) {
+                document.getElementById('current-status').innerText = "Offline";
+                document.getElementById('status-card').className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
+                document.getElementById('current-status').className = "text-5xl font-black text-red-600";
+            }
+        }, 10000); // প্রতি ১০ সেকেন্ডে একবার চেক করবে
+
+
+
+
         // --- ২. সময় গণনা ফাংশন (উন্নত সংস্করণ) ---
         function calculateDuration(startTimeStr, endTimeStr) {
             if (!startTimeStr || !endTimeStr) return "---";
@@ -278,7 +304,7 @@
 
                 // ৪. টেবিল এবং গ্রাফ আপডেট (Newest First)
                 
-                        // টেবিল এবং গ্রাফ রেন্ডার করার জন্য লুপ (Newest First)
+                // টেবিল এবং গ্রাফ রেন্ডার করার জন্য লুপ (Newest First)
                 let lastRenderedForTable = null;
 
                 for (let i = items.length - 1; i >= 0; i--) {
