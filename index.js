@@ -28,33 +28,26 @@ currentRef.once('value', (snapshot) => {
 });
 
 async function checkPower() {
-    const timestamp = getBDTime();
-    console.log(`[${timestamp}] Checking connection...`);
-
     try {
-        await axios.get('https://google.com', { timeout: 8000 });
+        await axios.get('https://1.1.1', { timeout: 5000 });
         
-        // শুধু তখনই Online পাঠাবে যদি আগে Offline থাকতো
         if (lastStatus !== "Online") {
-            await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
-            await currentRef.set({ status: "Online", last_update: timestamp });
+            // বিদ্যুৎ আসলে মাত্র একবারই এন্ট্রি হবে
+            await statusRef.push({ time: getBDTime(), status: "Online", location: "Kalkini" });
+            await currentRef.set({ status: "Online", last_update: getBDTime() });
             lastStatus = "Online";
-            console.log("✅ STATUS: ONLINE (Database Updated)");
-        } else {
-            // হার্টবিট সচল রাখতে শুধু সময় আপডেট
-            await currentRef.child("last_update").set(timestamp);
-            console.log("🟢 SYSTEM: STILL ONLINE");
         }
     } catch (error) {
-        // শুধু তখনই Offline পাঠাবে যদি আগে Online থাকতো
-        if (lastStatus !== "Offline") {
-            await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
-            await currentRef.set({ status: "Offline", last_update: timestamp });
-            lastStatus = "Offline";
-            console.log("⚠️ STATUS: OFFLINE (Database Updated)");
+        // এই চেকটি নিশ্চিত করবে যে একবার অফলাইন হলে আর নতুন করে পুশ করবে না
+        if (lastStatus === "Online" || lastStatus === null) {
+            await statusRef.push({ time: getBDTime(), status: "Offline", location: "Kalkini" });
+            await currentRef.set({ status: "Offline", last_update: getBDTime() });
+            lastStatus = "Offline"; 
+            console.log("⚠️ বিদ্যুৎ নেই, স্ট্যাটাস অফলাইন করা হলো।");
         }
     }
 }
+
 
 
 // ১. শুরুতেই ডাটাবেজ থেকে শেষ স্ট্যাটাসটি জেনে নেওয়া
