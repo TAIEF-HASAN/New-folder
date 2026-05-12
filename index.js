@@ -33,32 +33,40 @@ currentRef.once('value', (snapshot) => {
 
 async function checkPower() {
     const timestamp = getBDTime();
+    
     try {
-        // google.com অনেক সময় ধীরগতিতে রেসপন্স দেয়, তাই 1.1.1.1 ব্যবহার করা ভালো
-        await axios.get('https://1.1.1.1', { timeout: 10000 });
-        
+        // ১. ইন্টারনেট চেক (গুগল ব্যবহার করে)
+        await axios.get('https://google.com', { timeout: 8000 });
+
+        // ২. ইন্টারনেট থাকলে: যদি আগে অফলাইন থাকে তবেই অনলাইন করবে
         if (lastStatus !== "Online") {
             await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
             await currentRef.set({ status: "Online", last_update: timestamp });
             lastStatus = "Online";
-            console.log(`✅ [${timestamp}] বিদ্যুৎ আছে। (Online Update Sent)`);
+            console.log(`✅ [${timestamp}] বিদ্যুৎ ফিরেছে।`);
         } else {
-            // বিদ্যুৎ থাকলে শুধু সময় আপডেট করবে ড্যাশবোর্ডের জন্য
+            // হার্টবিট আপডেট (শুধু সময় পরিবর্তন)
             await currentRef.child("last_update").set(timestamp);
-            console.log(`🟢 [${timestamp}] সিস্টেম সচল আছে।`);
         }
     } catch (error) {
-        // শুধু তখনই Offline পাঠাবে যদি আগে Online থাকতো (No Duplicate)
-        if (lastStatus !== "Offline") {
+        // ৩. ইন্টারনেট না থাকলে: প্রথমে ফায়ারবেস থেকে বর্তমান অবস্থা চেক করবে (সবথেকে নিরাপদ উপায়)
+        // এটি নিশ্চিত করবে যে আগে থেকে অফলাইন থাকলে নতুন করে আর ডাটা ঢুকবে না
+        const snapshot = await currentRef.child("status").once('value');
+        const dbStatus = snapshot.val();
+
+        if (dbStatus !== "Offline") {
             await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
             await currentRef.set({ status: "Offline", last_update: timestamp });
             lastStatus = "Offline";
-            console.log(`⚠️ [${timestamp}] বিদ্যুৎ নেই! (Offline Update Sent)`);
+            console.log(`⚠️ [${timestamp}] বিদ্যুৎ চলে গেছে। (Database Updated)`);
         } else {
-            console.log(`🔴 [${timestamp}] বিদ্যুৎ এখনও আসেনি।`);
+            // যদি আগে থেকেই অফলাইন থাকে, তবে আর কিছুই করবে না
+            lastStatus = "Offline";
+            console.log(`🔴 [${timestamp}] বিদ্যুৎ এখনও আসেনি, নতুন ডাটা পাঠানো হয়নি।`);
         }
     }
 }
+
 
 
 
