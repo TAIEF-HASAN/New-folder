@@ -13,7 +13,7 @@ const currentRef = db.ref("current_status");
 
 // index.js এর উপরের অংশ... (admin, axios, serviceAccount ঠিক থাকবে)
 const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
-let lastStatus = null; 
+
 
 // --- শুরুতেই ডাটাবেজ থেকে স্ট্যাটাস পড়ার গ্যারান্টি ---
 console.log("🚀 Power Monitor Starting...");
@@ -31,41 +31,46 @@ currentRef.once('value', (snapshot) => {
     setInterval(checkPower, 30000); 
 });
 
+let lastStatus = "Online"; // শুরুতে Online ধরে নিন
+let isProcessing = false; // এটি ডুপ্লিকেট চেকিং নিশ্চিত করবে
+
 async function checkPower() {
+    // যদি আগের ৩০ সেকেন্ডের রিকোয়েস্ট এখনও ঝুলে থাকে, তবে নতুন করে শুরু করবে না
+    if (isProcessing) return; 
+    isProcessing = true;
+
     const timestamp = getBDTime();
     
     try {
-        // ১. ইন্টারনেট চেক (গুগল ব্যবহার করে)
-        await axios.get('https://google.com', { timeout: 8000 });
+        // ১. ইন্টারনেট চেক
+        await axios.get('https://1.1.1', { timeout: 8000 });
 
-        // ২. ইন্টারনেট থাকলে: যদি আগে অফলাইন থাকে তবেই অনলাইন করবে
         if (lastStatus !== "Online") {
             await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
             await currentRef.set({ status: "Online", last_update: timestamp });
             lastStatus = "Online";
             console.log(`✅ [${timestamp}] বিদ্যুৎ ফিরেছে।`);
         } else {
-            // হার্টবিট আপডেট (শুধু সময় পরিবর্তন)
+            // হার্টবিট আপডেট
             await currentRef.child("last_update").set(timestamp);
+            console.log(`🟢 [${timestamp}] সিস্টেম সচল আছে।`);
         }
     } catch (error) {
-        // ৩. ইন্টারনেট না থাকলে: প্রথমে ফায়ারবেস থেকে বর্তমান অবস্থা চেক করবে (সবথেকে নিরাপদ উপায়)
-        // এটি নিশ্চিত করবে যে আগে থেকে অফলাইন থাকলে নতুন করে আর ডাটা ঢুকবে না
-        const snapshot = await currentRef.child("status").once('value');
-        const dbStatus = snapshot.val();
-
-        if (dbStatus !== "Offline") {
+        // ২. ইন্টারনেট না থাকলে: ফায়ারবেসে রিকোয়েস্ট না পাঠিয়ে মেমোরি ভ্যারিয়েবল চেক করবে
+        // এটিই আপনার ডুপ্লিকেট ডাটা ঢোকা বন্ধ করবে
+        if (lastStatus !== "Offline") {
             await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
             await currentRef.set({ status: "Offline", last_update: timestamp });
             lastStatus = "Offline";
-            console.log(`⚠️ [${timestamp}] বিদ্যুৎ চলে গেছে। (Database Updated)`);
+            console.log(`⚠️ [${timestamp}] বিদ্যুৎ চলে গেছে। (Offline Update Sent)`);
         } else {
-            // যদি আগে থেকেই অফলাইন থাকে, তবে আর কিছুই করবে না
-            lastStatus = "Offline";
-            console.log(`🔴 [${timestamp}] বিদ্যুৎ এখনও আসেনি, নতুন ডাটা পাঠানো হয়নি।`);
+            console.log(`🔴 [${timestamp}] বিদ্যুৎ এখনও আসেনি।`);
         }
+    } finally {
+        isProcessing = false; // প্রসেস শেষ, পরের বার চেক করার জন্য রেডি
     }
 }
+
 
 
 
