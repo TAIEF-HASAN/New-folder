@@ -29,7 +29,7 @@ currentRef.once('value', (snapshot) => {
 
 async function checkPower() {
     try {
-        await axios.get('https://1.1.1', { timeout: 5000 });
+        await axios.get('https://google.com', { timeout: 5000 });
         
         if (lastStatus !== "Online") {
             // বিদ্যুৎ আসলে মাত্র একবারই এন্ট্রি হবে
