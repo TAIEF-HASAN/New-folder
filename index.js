@@ -10,43 +10,56 @@ admin.initializeApp({
 const db = admin.database();
 const statusRef = db.ref("power_status"); 
 const currentRef = db.ref("current_status"); 
-const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});// ১. সময়ের ফাংশন
 
+// index.js এর উপরের অংশ... (admin, axios, serviceAccount ঠিক থাকবে)
+const getBDTime = () => new Date().toLocaleString("en-BD", {timeZone: "Asia/Dhaka"});
+let lastStatus = null; 
 
-let lastStatus = null; // এটি ডুপ্লিকেট রোধ করবে
+// --- শুরুতেই ডাটাবেজ থেকে স্ট্যাটাস পড়ার গ্যারান্টি ---
+console.log("🚀 Power Monitor Starting...");
 
-// শুরুতে ডেটাবেজ থেকে শেষ স্ট্যাটাসটি জেনে নেওয়া
 currentRef.once('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
         lastStatus = data.status;
-        console.log(`[SYSTEM] আগের স্ট্যাটাস ছিল: ${lastStatus}`);
+        console.log(`[SYSTEM] ডাটাবেজ অনুযায়ী বর্তমান অবস্থা: ${lastStatus}`);
     }
-    // স্ট্যাটাস জানার পর মনিটরিং শুরু
-    checkPower();
+
+    // ডাটাবেজ থেকে বর্তমান অবস্থা জানার পরেই কেবল মনিটরিং শুরু হবে
+    // এতে lastStatus শুরুতে null থাকার কারণে ডুপ্লিকেট হওয়ার ভয় থাকবে না
+    checkPower(); 
     setInterval(checkPower, 30000); 
 });
 
 async function checkPower() {
+    const timestamp = getBDTime();
     try {
-        await axios.get('https://google.com', { timeout: 5000 });
+        // google.com অনেক সময় ধীরগতিতে রেসপন্স দেয়, তাই 1.1.1.1 ব্যবহার করা ভালো
+        await axios.get('https://1.1.1.1', { timeout: 10000 });
         
         if (lastStatus !== "Online") {
-            // বিদ্যুৎ আসলে মাত্র একবারই এন্ট্রি হবে
-            await statusRef.push({ time: getBDTime(), status: "Online", location: "Kalkini" });
-            await currentRef.set({ status: "Online", last_update: getBDTime() });
+            await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
+            await currentRef.set({ status: "Online", last_update: timestamp });
             lastStatus = "Online";
+            console.log(`✅ [${timestamp}] বিদ্যুৎ আছে। (Online Update Sent)`);
+        } else {
+            // বিদ্যুৎ থাকলে শুধু সময় আপডেট করবে ড্যাশবোর্ডের জন্য
+            await currentRef.child("last_update").set(timestamp);
+            console.log(`🟢 [${timestamp}] সিস্টেম সচল আছে।`);
         }
     } catch (error) {
-        // এই চেকটি নিশ্চিত করবে যে একবার অফলাইন হলে আর নতুন করে পুশ করবে না
-        if (lastStatus === "Online" || lastStatus === null) {
-            await statusRef.push({ time: getBDTime(), status: "Offline", location: "Kalkini" });
-            await currentRef.set({ status: "Offline", last_update: getBDTime() });
-            lastStatus = "Offline"; 
-            console.log("⚠️ বিদ্যুৎ নেই, স্ট্যাটাস অফলাইন করা হলো।");
+        // শুধু তখনই Offline পাঠাবে যদি আগে Online থাকতো (No Duplicate)
+        if (lastStatus !== "Offline") {
+            await statusRef.push({ time: timestamp, status: "Offline", location: "Kalkini" });
+            await currentRef.set({ status: "Offline", last_update: timestamp });
+            lastStatus = "Offline";
+            console.log(`⚠️ [${timestamp}] বিদ্যুৎ নেই! (Offline Update Sent)`);
+        } else {
+            console.log(`🔴 [${timestamp}] বিদ্যুৎ এখনও আসেনি।`);
         }
     }
 }
+
 
 
 
