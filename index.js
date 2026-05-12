@@ -43,7 +43,7 @@ async function checkPower() {
     
     try {
         // ১. ইন্টারনেট চেক
-        await axios.get('https://1.1.1', { timeout: 8000 });
+        await axios.get('https://1.1.1.1', { timeout: 8000 });
 
         if (lastStatus !== "Online") {
             await statusRef.push({ time: timestamp, status: "Online", location: "Kalkini" });
