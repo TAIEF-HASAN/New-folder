@@ -70,7 +70,11 @@
             <!-- ইতিহাস টেবিল (ফোনের জন্য অপ্টিমাইজড) -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="p-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-sm font-bold text-gray-700">📜 সাম্প্রতিক ইতিহাস (Logs)</h3>
+                    <h3 class="text-sm font-bold text-gray-700">📜 সাম্প্রতিক ইতিহাস (Logs)</h3> 
+                        <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4 bg-gray-50 p-4 rounded-xl">
+                            <label class="text-sm font-bold text-gray-600">📅 নির্দিষ্ট দিনের ইতিহাস দেখুন:</label>
+                            <input type="date" id="filter-date" class="border border-gray-300 p-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
                     <span class="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider">Live</span>
                 </div>
                 <div class="overflow-x-auto w-full">
