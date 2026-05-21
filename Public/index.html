@@ -461,15 +461,17 @@
                 }
             });
 
-            // ৩. চার্টে ডেটা পুশ করা
-            const finalLabels = Object.keys(weeklySummary);
-            const finalData = Object.values(weeklySummary);
+            // ৩. চার্টে ডেটা পুশ করা (ঠিক শেষ ৭ দিন লক করার নিখুঁত লজিক)
+            // Object.keys দিয়ে সব ডেট নিয়ে তা থেকে শুধু শেষ ৭টি ডেট কেটে নেওয়া হচ্ছে
+            const finalLabels = Object.keys(weeklySummary).slice(-7);
+            const finalData = finalLabels.map(date => weeklySummary[date]);
 
             if (finalLabels.length > 0) {
                 weeklyChart.data.labels = finalLabels;
-                weeklyChart.data.datasets[0].data = finalData; // datasets[0] ব্যবহার করা হয়েছে
+                weeklyChart.data.datasets[0].data = finalData; // আপনার datasets[0] স্ট্রাকচার ঠিক রাখা হলো
                 weeklyChart.update();
             }
+
         });
 
 
