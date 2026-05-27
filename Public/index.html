@@ -450,7 +450,19 @@
                 if (current.status === 'Online' && previous && previous.status === 'Offline') {
                     // ১. তারিখ আলাদা করা (কমা দিয়ে ভাগ করে শুধু প্রথম অংশ নেওয়া)
                     // এটি "5/11/2026, 10:40:49 AM" থেকে "5/11/2026" বের করবে
-                    const dateOnly = current.time.split(',')[0].trim();
+                    //const dateOnly = current.time.split(',')[0].trim();
+                    // ম্যানুয়াল ডেটার ফরম্যাট যেমনই হোক, এটি তাকে স্ট্যান্ডার্ড YYYY-MM-DD বা স্ট্যান্ডার্ড ডেটে কনভার্ট করবে
+                    // ১. তারিখ নিখুঁত করতে কমা দিয়ে স্প্লিট করে ট্রিম করুন (আপনার মূল সফল লজিক)
+                    let dateOnly = current.time.split(',')[0].trim();
+
+                    // ২. সেফটি চেক: যদি ম্যানুয়াল এন্ট্রির কারণে তারিখে কোনো স্ল্যাশ বা স্পেসের অমিল থাকে, তবে সেটিকে স্ট্যান্ডার্ড করে নেবে
+                    if(dateOnly.includes('/')) {
+                        const parts = dateOnly.split('/');
+                        // যদি সিঙ্গেল ডিজিট মাস/দিন হয় (যেমন ৫), তবে সেটিকে স্ট্যান্ডার্ড ফরম্যাটে রূপান্তর করবে
+                        dateOnly = `${parseInt(parts[0])}/${parseInt(parts[1])}/${parts[2]}`;
+                    }
+
+
                     
                     // ২. ডিউরেশন বের করা
                     const mins = getDurationMins(previous.time, current.time);
