@@ -10,6 +10,20 @@
         <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
     </head>
     <body class="bg-gray-50 font-sans pb-10">
+        <!-- 📢 Dynamic Emergency Notice Board Container -->
+        <div id="notice-board-container" class="w-full bg-red-600 text-white font-semibold py-2 px-4 shadow-md hidden">
+            <div class="max-w-7xl mx-auto flex items-center overflow-hidden relative">
+                <span class="bg-white text-red-600 text-xs uppercase px-2 py-1 rounded font-bold mr-3 z-10 whitespace-nowrap shadow">
+                    জরুরি নোটিশ
+                </span>
+                <!-- স্ক্রোলিং টেক্সট লজিক -->
+                <marquee id="live-notice-text" behavior="scroll" direction="left" class="text-sm md:text-base">
+                    লোডশেডিং ট্র্যাকিং সিস্টেম লোড হচ্ছে...
+                </marquee>
+            </div>
+        </div>
+
+
         <div class="max-w-2xl mx-auto px-4 mt-6">
             <!-- হেডার সেকশন -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 text-center mb-5">
@@ -485,6 +499,22 @@
             }
 
         });
+
+        // 📢 ফায়ারবেস থেকে জরুরি নোটিশের লাইভ ডেটা রিড করার লজিক
+        db.ref('emergency_notice').on('value', (snap) => {
+            const data = snap.val();
+            const container = document.getElementById('notice-board-container');
+            const textLabel = document.getElementById('live-notice-text');
+
+            // যদি নোটিশের স্ট্যাটাস Active থাকে এবং টেক্সট ফাঁকা না হয়, তবেই ড্যাশবোর্ডে দেখাবে
+            if (data && data.status === 'Active' && data.text) {
+                textLabel.innerText = data.text;
+                container.classList.remove('hidden'); // নোটিশ বক্সটি অন হবে
+            } else {
+                container.classList.add('hidden'); // নোটিশ বক্সটি সম্পূর্ণ হাইড বা বন্ধ থাকবে
+            }
+        });
+
 
 
 
