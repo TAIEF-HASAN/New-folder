@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KPM - Admin Panel</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://tailwindcss.com"></script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center font-sans">
+
+    <!-- 🔒 1. Login Section (পাসওয়ার্ড গেট) -->
+    <div id="login-section" class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-amber-500 mb-2">⚡ KPM Admin</h1>
+            <p class="text-slate-400 text-sm">জরুরি নোটিশ বোর্ড আপডেট প্যানেল</p>
+        </div>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1">অ্যাডমিন পাসওয়ার্ড</label>
+                <input type="password" id="admin-password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition" placeholder="••••••••">
+            </div>
+            <p id="login-error" class="text-red-500 text-sm hidden">❌ ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।</p>
+            <button onclick="verifyPassword()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/20">লগইন করুন</button>
+        </div>
+    </div>
+
+    <!-- 📝 2. Control Panel Section (লগইন সফল হলে এটি দেখাবে) -->
+    <div id="panel-section" class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-700 hidden">
+        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
+            <div>
+                <h1 class="text-2xl font-bold text-amber-500">📢 Notice Control</h1>
+                <p class="text-slate-400 text-xs">সরাসরি ড্যাশবোর্ডে নোটিশ পাবলিশ করুন</p>
+            </div>
+            <button onclick="logout()" class="text-xs bg-slate-700 hover:bg-red-600 px-3 py-1.5 rounded-lg transition">লগআউট</button>
+        </div>
+
+        <div class="space-y-5">
+            <!-- নোটিশের স্ট্যাটাস টগল -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1">নোটিশ বোর্ড স্ট্যাটাস</label>
+                <select id="notice-status" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition">
+                    <option value="Active">🔴 Active (ড্যাশবোর্ডে দেখাবে)</option>
+                    <option value="Inactive">⚪ Inactive (বন্ধ থাকবে)</option>
+                </select>
+            </div>
+
+            <!-- নোটিশ টেক্সট এরিয়া -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-1">জরুরি নোটিশের বিবরণ</label>
+                <textarea id="notice-text" rows="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition" placeholder="এখানে নোটিশের লেখাটি লিখুন..."></textarea>
+            </div>
+
+            <!-- সাকসেস/এরর মেসেজ -->
+            <p id="action-status" class="text-sm font-semibold text-center hidden"></p>
+
+            <!-- সাবমিট বাটন -->
+            <button onclick="publishNotice()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-500/20">🚀 Publish Notice</button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK (মেইন ড্যাশবোর্ডের মতো সংস্করণ ব্যবহার করা হলো) -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+
+    <script>
+        // 🔒 আপনার মেইন index.html থেকে Firebase Config হুবহু কপি করে এখানে বসান
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // ফায়ারবেস ইনিশিয়ালাইজেশন
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // 🤫 আপনার সিক্রেট অ্যাডমিন পাসওয়ার্ড (এটি আপনার ইচ্ছামতো পরিবর্তন করতে পারেন)
+        const SECRET_PASSWORD = "kalkini_power_admin";
+
+        // পাসওয়ার্ড ভেরিফিকেশন ফাংশন
+        function verifyPassword() {
+            const input = document.getElementById('admin-password').value;
+            const errorMsg = document.getElementById('login-error');
+            
+            if (input === SECRET_PASSWORD) {
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('panel-section').classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+                loadCurrentNotice(); // বর্তমান নোটিশ লোড করা
+            } else {
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        // ডেটাবেজ থেকে বর্তমান নোটিশ এনে বক্সে দেখানো
+        function loadCurrentNotice() {
+            db.ref('emergency_notice').once('value', (snap) => {
+                const data = snap.val();
+                if (data) {
+                    document.getElementById('notice-status').value = data.status || 'Inactive';
+                    document.getElementById('notice-text').value = data.text || '';
+                }
+            });
+        }
+
+        // ফায়ারবেসে নোটিশ পাবলিশ করার ফাংশন
+        function publishNotice() {
+            const status = document.getElementById('notice-status').value;
+            const text = document.getElementById('notice-text').value.trim();
+            const statusLabel = document.getElementById('action-status');
+
+            if (!text && status === 'Active') {
+                statusLabel.className = "text-red-400 text-sm font-semibold text-center";
+                statusLabel.innerText = "⚠️ দয়া করে নোটিশের বিবরণ লিখুন!";
+                statusLabel.classList.remove('hidden');
+                return;
+            }
+
+            // ফায়ারবেসে ডেটা পুশ লজিক
+            db.ref('emergency_notice').set({
+                status: status,
+                text: text,
+                timestamp: new Date().toLocaleString("en-US", {timeZone: "Asia/Dhaka"})
+            })
+            .then(() => {
+                statusLabel.className = "text-emerald-400 text-sm font-semibold text-center";
+                statusLabel.innerText = "✅ নোটিশ সফলভাবে ড্যাশবোর্ডে লাইভ হয়েছে!";
+                statusLabel.classList.remove('hidden');
+                setTimeout(() => statusLabel.classList.add('hidden'), 3000);
+            })
+            .catch((err) => {
+                statusLabel.className = "text-red-400 text-sm font-semibold text-center";
+                statusLabel.innerText = "❌ এরর: " + err.message;
+                statusLabel.classList.remove('hidden');
+            });
+        }
+
+        // লগআউট ফাংশন
+        function logout() {
+            document.getElementById('admin-password').value = '';
+            document.getElementById('panel-section').classList.add('hidden');
+            document.getElementById('login-section').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
