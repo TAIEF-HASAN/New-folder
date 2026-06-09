@@ -373,6 +373,7 @@
         });
 
         // --- তারিখ ফিল্টারিং মডিউল (আপনার মূল কোডের বাইরে থাকবে) ---
+        // --- তারিখ ফিল্টারিং এবং ডাইনামিক অ্যানালিটিক্স সিঙ্ক মডিউল (Jira: KPM-09) ---
         const filterInput = document.getElementById('filter-date');
         if (filterInput) {
             // ডিফল্ট হিসেবে আজকের তারিখ সেট করা (Format: YYYY-MM-DD)
@@ -380,9 +381,9 @@
 
             // তারিখ পরিবর্তন হলে এই ইভেন্টটি কাজ করবে
             filterInput.addEventListener('change', () => {
-                const selectedDate = filterInput.value; // ইউজার যে ডেট সিলেক্ট করল
+                const selectedDate = filterInput.value; // ইউজারের সিলেক্ট করা তারিখ
                 
-                // ফায়ারবেস থেকে শেষ ১৫০টি ডেটা নিয়ে এসে চেক করবে
+                // ফায়ারবেস 'power_status' নোড থেকে ডেটা আনা (কুয়েরি লিমিট ১৫০ রাখা হলো)
                 db.ref('power_status').limitToLast(150).once('value', (snap) => {
                     const data = snap.val();
                     const tableBody = document.getElementById('log-table-body');
@@ -390,15 +391,19 @@
 
                     tableBody.innerHTML = ''; // টেবিল খালি করা
                     
-                    // ডেটা কালানুক্রমিক সাজানো
+                    // ডেটা কালানুক্রমিকভাবে সাজানো (Oldest to Newest)
                     const items = Object.values(data)
                         .filter(i => i && i.time)
                         .sort((a, b) => new Date(a.time.replace(/-/g, '/')) - new Date(b.time.replace(/-/g, '/')));
 
                     let lastStatusForTable = null;
                     let matchCount = 0;
+                    
+                    // ডাইনামিক অ্যানালিটিক্স ভ্যারিয়েবলসমূহ
+                    let selectedDayCuts = 0;
+                    let selectedDayMinutes = 0;
 
-                    // ঐতিহ্যবাহী 'for' লুপ দিয়ে ফিল্টার করা (নতুন ডেটা উপরে)
+                    // ডেটার ওপর লুপ চালানো (Newest First এ টেবিল দেখানোর জন্য উল্টো লুপ)
                     for (let i = items.length - 1; i >= 0; i--) {
                         const current = items[i];
                         const previous = items[i - 1];
@@ -406,16 +411,24 @@
                         if (current.status === lastStatusForTable) continue;
                         lastStatusForTable = current.status;
 
-                        // ডেটার তারিখটিকে YYYY-MM-DD ফরম্যাটে নেওয়া
+                        // ডেটার তারিখটিকে YYYY-MM-DD ফরম্যাটে রূপান্তর
                         const entryDateObj = new Date(current.time);
                         const entryYear = entryDateObj.getFullYear();
                         const entryMonth = String(entryDateObj.getMonth() + 1).padStart(2, '0');
                         const entryDay = String(entryDateObj.getDate()).padStart(2, '0');
                         const entryDateFormatted = `${entryYear}-${entryMonth}-${entryDay}`;
 
-                        // যদি তারিখ মিলে যায়, তবেই টেবিলে পুশ করবে
+                        // যদি ফায়ারবেসের ডেটার তারিখ ইউজারের সিলেক্ট করা তারিখের সাথে মিলে যায়
                         if (entryDateFormatted === selectedDate) {
                             matchCount++;
+
+                            // লোডশেডিং সংখ্যা ও মিনিট ক্যালকুলেশন ইঞ্জিন
+                            if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                                selectedDayCuts++;
+                                selectedDayMinutes += calculateDurationInMins(previous.time, current.time);
+                            }
+
+                            // টেবিল রো (Row) তৈরি
                             let durationText = "---";
                             if (current.status === 'Online' && previous && previous.status === 'Offline') {
                                 durationText = calculateDuration(previous.time, current.time);
@@ -432,13 +445,44 @@
                         }
                     }
 
-                    // যদি ওই তারিখে কোনো ডেটা না পাওয়া যায়
-                    if (matchCount === 0) {
-                        tableBody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-sm text-gray-400">📅 এই তারিখে কোনো লোডশেডিং রেকর্ড নেই।</td></tr>`;
+                    // --- উপরের ৪টি অ্যানালিটিক্স কার্ড ডাইনামিকভাবে সিঙ্ক ও আপডেট করা ---
+                    const countCard = document.getElementById('today-count');
+                    const totalTimeCard = document.getElementById('today-total-time');
+                    const avgTimeCard = document.getElementById('today-avg-time');
+                    const reliabilityCard = document.getElementById('reliability-score');
+
+                    if (matchCount > 0) {
+                        // কার্ড ১: নির্দিষ্ট দিনের মোট লোডশেডিং সংখ্যা
+                        if (countCard) countCard.innerText = `${selectedDayCuts} বার`;
+                        
+                        // কার্ড ২: নির্দিষ্ট দিনের মোট অফলাইন সময়
+                        if (totalTimeCard) totalTimeCard.innerText = `${selectedDayMinutes} মি.`;
+                        
+                        // কার্ড ৩: নির্দিষ্ট দিনের গড় সময়
+                        if (avgTimeCard) {
+                            avgTimeCard.innerText = selectedDayCuts > 0 ? `${Math.round(selectedDayMinutes / selectedDayCuts)} মি.` : "০ মি.";
+                        }
+                        
+                        // কার্ড ৪: নির্দিষ্ট দিনের বিদ্যুতের স্থায়িত্ব (Reliability Score)
+                        if (reliabilityCard) {
+                            const totalDayMinutes = 1440; // ২৪ ঘণ্টা = ১৪৪০ মিনিট
+                            const score = (((totalDayMinutes - selectedDayMinutes) / totalDayMinutes) * 100).toFixed(1);
+                            reliabilityCard.innerText = `${score < 0 ? 0 : score}%`;
+                        }
+                    } else {
+                        // যদি ঐ তারিখে কোনো ডেটা বা লগ না থাকে তবে কার্ডগুলো রিসেট হবে
+                        if (countCard) countCard.innerText = "০ বার";
+                        if (totalTimeCard) totalTimeCard.innerText = "০ মি.";
+                        if (avgTimeCard) avgTimeCard.innerText = "০ মি.";
+                        if (reliabilityCard) reliabilityCard.innerText = "100%";
+                        
+                        // টেবিলে 'নো ডেটা' মেসেজ দেখানো
+                        tableBody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-sm text-gray-400">এই তারিখে কোনো লোডশেডিং রেকর্ড নেই।</td></tr>`;
                     }
                 });
             });
         }
+
 
 
 
