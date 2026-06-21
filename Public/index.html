@@ -10,6 +10,36 @@
         <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
     </head>
     <body class="bg-gray-50 font-sans pb-10">
+        
+        <!-- অনবোর্ডিং স্ক্রিন কন্টেইনার -->
+        <div id="onboarding-screen" class="fixed inset-0 bg-gray-100 z-50 flex flex-col justify-between p-6">
+            
+            <!-- টপ হেডার সেকশন -->
+            <div class="text-center mt-6">
+                <h1 class="text-2xl font-black text-gray-800 tracking-tight">🔋 কালকিনি পাওয়ার মনিটর</h1>
+                <p class="text-sm text-gray-500 mt-2 font-medium">দয়া করে টাচ করে আপনার এলাকাটি নিশ্চিত করুন</p>
+            </div>
+
+            <!-- ২-কলামের ডাইনামিক কার্ড গ্রিড (এখানে জাভাস্ক্রিপ্ট দিয়ে কার্ড পুশ হবে) -->
+            <div id="onboard-card-grid" class="grid grid-cols-2 gap-4 my-auto overflow-y-auto max-h-[60vh] py-2">
+                <!-- ফায়ারবেস থেকে আসা এলাকাগুলো এখানে অটো-রেন্ডার হবে -->
+            </div>
+
+            <!-- বটম কনফার্ম বোতাম -->
+            <div class="mb-6">
+                <button id="confirm-area-btn" onclick="saveUserArea()" disabled 
+                        class="w-full py-4 bg-gray-400 text-white font-bold rounded-2xl shadow-lg transition-all duration-300 transform active:scale-95 cursor-not-allowed">
+                    এলাকা নিশ্চিত করুন
+                </button>
+            </div>
+        </div>
+
+        <!-- আপনার বিদ্যমান ড্যাশবোর্ড কন্টেইনার (যা ডিফল্টভাবে হাইড থাকবে) -->
+        <div id="main-dashboard" class="hidden">
+            <!-- এখানে আপনার আগের তৈরি করা চার্ট, পাই-চার্ট এবং টেবিল থাকবে -->
+        </div>
+
+
         <!-- 📢 Dynamic Emergency Notice Board Container (Fixed Scrolling) -->
         <div id="notice-board-container" class="w-full bg-red-600 text-white font-semibold py-2.5 px-4 shadow-md relative z-50 hidden">
             <div class="max-w-7xl mx-auto flex items-center relative overflow-hidden">
@@ -195,6 +225,82 @@
                 }
             }
         });
+
+        let selectedAreaId = null;
+        // ১. ফায়ারবেস থেকে এলাকা নিয়ে এসে ২-কলামের গ্রিডে রেন্ডার করা
+        db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
+            const areasData = snapshot.val();
+            const onboardGrid = document.getElementById('onboard-card-grid');
+            if (!onboardGrid || !areasData) return;
+            
+            onboardGrid.innerHTML = ''; // আগের লিস্ট পরিষ্কার করা
+
+            // ডেটাবেজে যত এলাকা থাকবে, লুপের মাধ্যমে রো (Row) তত বাড়তে থাকবে
+            Object.keys(areasData).forEach((areaId) => {
+                const area = areasData[areaId];
+                
+                const cardHTML = `
+                    <div onclick="highlightCard('${areaId}')" id="card-${areaId}" 
+                        class="p-5 border-2 border-gray-200 rounded-2xl bg-white text-center cursor-pointer transition-all duration-200 shadow-sm active:scale-95 flex flex-col items-center justify-center min-h-[110px]">
+                        <span class="text-2xl mb-1">📍</span>
+                        <span class="font-bold text-gray-700 text-sm leading-tight">${area.name}</span>
+                    </div>
+                `;
+                onboardGrid.innerHTML += cardHTML;
+            });
+            
+            // অ্যাপ ওপেন করার সময় আগে থেকেই এরিয়া সেভ আছে কি না চেক করা
+            checkExistingUser();
+        });
+
+        // ২. কার্ড সিলেক্ট করলে হাইলাইট করার ভিজ্যুয়াল ইফেক্ট (Tailwind Dynamic Class)
+        function highlightCard(areaId) {
+            selectedAreaId = areaId;
+            
+            // আগের সব কার্ডের বর্ডার নরমাল করা
+            document.querySelectorAll('#onboard-card-grid > div').forEach(card => {
+                card.classList.remove('border-blue-600', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                card.classList.add('border-gray-200', 'bg-white');
+            });
+
+            // সিলেক্টেড কার্ডটিকে আকর্ষণীয় নীল বর্ডার দেওয়া
+            const activeCard = document.getElementById(`card-${areaId}`);
+            if (activeCard) {
+                activeCard.classList.remove('border-gray-200', 'bg-white');
+                activeCard.classList.add('border-blue-600', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+            }
+
+            // "নিশ্চিত করুন" বাটনটি সচল (Enable) করা
+            const confirmBtn = document.getElementById('confirm-area-btn');
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+            confirmBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }
+
+        // ৩. এলাকা LocalStorage-এ আজীবনের জন্য সেভ করা এবং ড্যাশবোর্ডে নিয়ে যাওয়া
+        function saveUserArea() {
+            if (!selectedAreaId) return;
+            localStorage.setItem('kpm_user_area', selectedAreaId); // ব্রাউজারে লক হয়ে গেল
+            goToDashboard();
+        }
+
+        // ৪. ওয়ান-টাইম অনবোর্ডিং স্ক্রিন লুকিয়ে মেইন ড্যাশবোর্ড ওপেন করা
+        function goToDashboard() {
+            document.getElementById('onboarding-screen').classList.add('hidden');
+            document.getElementById('main-dashboard').classList.remove('hidden');
+            console.log("User Area Locked:", localStorage.getItem('kpm_user_area'));
+            // এখানে আপনার বিদ্যমান চার্ট ও টেবিল লোড করার ফাংশনটি কল হবে (যা আমরা মডিউল ৩-এ করব)
+        }
+
+        // ৫. ব্যবহারকারী আগে থেকেই এরিয়া সেভ করে রেখেছে কি না যাচাই করা (Auto-Redirect)
+        function checkExistingUser() {
+            const savedArea = localStorage.getItem('kpm_user_area');
+            if (savedArea) {
+                goToDashboard(); // ডিরেক্ট ড্যাশবোর্ডে স্কিপ করবে
+            }
+        }
+
+        
 
 
             // --- ১. বর্তমান স্ট্যাটাস আপডেট লজিক ---
