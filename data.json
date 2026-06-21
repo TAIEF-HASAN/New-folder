@@ -1,0 +1,41 @@
+{
+  "kalkini_power_monitor": {
+    "system_control": {
+      "master_switch": "ON",
+      "last_updated": "2026-06-21 11:45:00"
+    },
+    "feeders": {
+      "feeder_paurashava": {
+        "name": "পৌরসভা ফিডার",
+        "status": "Online"
+      },
+      "feeder_sahebrampur": {
+        "name": "সাহেবরামপুর ফিডার",
+        "status": "Online"
+      }
+    },
+    "areas": {
+      "area_01": {
+        "name": "কালকিনি পৌরসভা",
+        "feeder_id": "feeder_paurashava",
+        "status": "Online",
+        "sequence": 1,
+        "last_ping": "2026-06-21 11:45:00"
+      },
+      "area_02": {
+        "name": "খাসেরহাট বাজার",
+        "feeder_id": "feeder_sahebrampur",
+        "status": "Online",
+        "sequence": 2,
+        "last_ping": "2026-06-21 11:45:00"
+      },
+      "area_03": {
+        "name": "সাহেবরামপুর গ্রাম",
+        "feeder_id": "feeder_sahebrampur",
+        "status": "Online",
+        "sequence": 3,
+        "last_ping": "2026-06-21 11:45:00"
+      }
+    }
+  }
+}
