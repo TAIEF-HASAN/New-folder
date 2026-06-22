@@ -167,571 +167,571 @@
 
         
         <script>
-            const firebaseConfig = {
-                apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
-                authDomain: "kalkinipowermonitor.firebaseapp.com",
-                databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
-                projectId: "kalkinipowermonitor",
-                storageBucket: "kalkinipowermonitor.firebasestorage.app",
-                messagingSenderId: "119477481190",
-                appId: "1:119477481190:web:7f3404fcf0b87db388d527"
-            };
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.database();
+                const firebaseConfig = {
+                    apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
+                    authDomain: "kalkinipowermonitor.firebaseapp.com",
+                    databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
+                    projectId: "kalkinipowermonitor",
+                    storageBucket: "kalkinipowermonitor.firebasestorage.app",
+                    messagingSenderId: "119477481190",
+                    appId: "1:119477481190:web:7f3404fcf0b87db388d527"
+                };
+                firebase.initializeApp(firebaseConfig);
+                const db = firebase.database();
 
-            const ctx = document.getElementById('powerChart').getContext('2d');
-            const powerChart = new Chart(ctx, {
-            type: 'line',
-            data: { 
-                labels: [], 
-                datasets: [{ 
-                    label: 'পাওয়ার স্ট্যাটাস', 
-                    data: [], 
-                    borderColor: '#3b82f6', 
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)', // নিচের অংশ ভরাট করার রঙ
-                    fill: true, // নিচের অংশ ফিল করার জন্য
-                    stepped: true, 
-                    pointRadius: 2,
-                    borderWidth: 2
-                }] 
-            },
-            options: { 
-                responsive: true,
-                maintainAspectRatio: false,
-                layout: {
-                    padding: {
-                        left: -10, // বামের গ্যাপ কমানোর জন্য
-                        right: 0
-                    }
+                const ctx = document.getElementById('powerChart').getContext('2d');
+                const powerChart = new Chart(ctx, {
+                type: 'line',
+                data: { 
+                    labels: [], 
+                    datasets: [{ 
+                        label: 'পাওয়ার স্ট্যাটাস', 
+                        data: [], 
+                        borderColor: '#3b82f6', 
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)', // নিচের অংশ ভরাট করার রঙ
+                        fill: true, // নিচের অংশ ফিল করার জন্য
+                        stepped: true, 
+                        pointRadius: 2,
+                        borderWidth: 2
+                    }] 
                 },
-                scales: { 
-                    y: { 
-                        min: 0, 
-                        max: 1.2, 
-                        ticks: { stepSize: 1, display: false }, // Y অক্ষের বাড়তি লেখা লুকানোর জন্য
-                        grid: { display: false } 
-                    },
-                    x: {
-                        grid: { display: false },
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45,
-                            font: { size: 8 }
+                options: { 
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: {
+                        padding: {
+                            left: -10, // বামের গ্যাপ কমানোর জন্য
+                            right: 0
                         }
+                    },
+                    scales: { 
+                        y: { 
+                            min: 0, 
+                            max: 1.2, 
+                            ticks: { stepSize: 1, display: false }, // Y অক্ষের বাড়তি লেখা লুকানোর জন্য
+                            grid: { display: false } 
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 45,
+                                font: { size: 8 }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false } // উপরের লেজেন্ড লুকানোর জন্য যাতে জায়গা বাঁচে
                     }
-                },
-                plugins: {
-                    legend: { display: false } // উপরের লেজেন্ড লুকানোর জন্য যাতে জায়গা বাঁচে
+                }
+            });
+
+            let selectedAreaId = null;
+            // ১. ফায়ারবেস থেকে এলাকা নিয়ে এসে ২-কলামের গ্রিডে রেন্ডার করা
+            db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
+                const areasData = snapshot.val();
+                const onboardGrid = document.getElementById('onboard-card-grid');
+                if (!onboardGrid || !areasData) return;
+                
+                onboardGrid.innerHTML = ''; // আগের লিস্ট পরিষ্কার করা
+
+                // ডেটাবেজে যত এলাকা থাকবে, লুপের মাধ্যমে রো (Row) তত বাড়তে থাকবে
+                Object.keys(areasData).forEach((areaId) => {
+                    const area = areasData[areaId];
+                    
+                    const cardHTML = `
+                        <div onclick="highlightCard('${areaId}')" id="card-${areaId}" 
+                            class="p-5 border-2 border-gray-200 rounded-2xl bg-white text-center cursor-pointer transition-all duration-200 shadow-sm active:scale-95 flex flex-col items-center justify-center min-h-[110px]">
+                            <span class="text-2xl mb-1">📍</span>
+                            <span class="font-bold text-gray-700 text-sm leading-tight">${area.name}</span>
+                        </div>
+                    `;
+                    onboardGrid.innerHTML += cardHTML;
+                });
+                
+                // অ্যাপ ওপেন করার সময় আগে থেকেই এরিয়া সেভ আছে কি না চেক করা
+                checkExistingUser();
+            });
+
+            // ২. কার্ড সিলেক্ট করলে হাইলাইট করার ভিজ্যুয়াল ইফেক্ট (Tailwind Dynamic Class)
+            function highlightCard(areaId) {
+                selectedAreaId = areaId;
+                
+                // আগের সব কার্ডের বর্ডার নরমাল করা
+                document.querySelectorAll('#onboard-card-grid > div').forEach(card => {
+                    card.classList.remove('border-blue-600', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                    card.classList.add('border-gray-200', 'bg-white');
+                });
+
+                // সিলেক্টেড কার্ডটিকে আকর্ষণীয় নীল বর্ডার দেওয়া
+                const activeCard = document.getElementById(`card-${areaId}`);
+                if (activeCard) {
+                    activeCard.classList.remove('border-gray-200', 'bg-white');
+                    activeCard.classList.add('border-blue-600', 'bg-blue-50', 'ring-4', 'ring-blue-100');
+                }
+
+                // "নিশ্চিত করুন" বাটনটি সচল (Enable) করা
+                const confirmBtn = document.getElementById('confirm-area-btn');
+                confirmBtn.disabled = false;
+                confirmBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                confirmBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+            }
+
+            // ৩. এলাকা LocalStorage-এ আজীবনের জন্য সেভ করা এবং ড্যাশবোর্ডে নিয়ে যাওয়া
+            function saveUserArea() {
+                if (!selectedAreaId) return;
+                localStorage.setItem('kpm_user_area', selectedAreaId); // ব্রাউজারে লক হয়ে গেল
+                goToDashboard();
+            }
+
+            // 4. ব্যবহারকারী আগে থেকেই এরিয়া সেভ করে রেখেছে কি না যাচাই করা (Auto-Redirect)
+            function checkExistingUser() {
+                const savedArea = localStorage.getItem('kpm_user_area');
+                if (savedArea) {
+                    goToDashboard(); // ডিরেক্ট ড্যাশবোর্ডে স্কিপ করবে
                 }
             }
-        });
-
-        let selectedAreaId = null;
-        // ১. ফায়ারবেস থেকে এলাকা নিয়ে এসে ২-কলামের গ্রিডে রেন্ডার করা
-        db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
-            const areasData = snapshot.val();
-            const onboardGrid = document.getElementById('onboard-card-grid');
-            if (!onboardGrid || !areasData) return;
-            
-            onboardGrid.innerHTML = ''; // আগের লিস্ট পরিষ্কার করা
-
-            // ডেটাবেজে যত এলাকা থাকবে, লুপের মাধ্যমে রো (Row) তত বাড়তে থাকবে
-            Object.keys(areasData).forEach((areaId) => {
-                const area = areasData[areaId];
-                
-                const cardHTML = `
-                    <div onclick="highlightCard('${areaId}')" id="card-${areaId}" 
-                        class="p-5 border-2 border-gray-200 rounded-2xl bg-white text-center cursor-pointer transition-all duration-200 shadow-sm active:scale-95 flex flex-col items-center justify-center min-h-[110px]">
-                        <span class="text-2xl mb-1">📍</span>
-                        <span class="font-bold text-gray-700 text-sm leading-tight">${area.name}</span>
-                    </div>
-                `;
-                onboardGrid.innerHTML += cardHTML;
-            });
-            
-            // অ্যাপ ওপেন করার সময় আগে থেকেই এরিয়া সেভ আছে কি না চেক করা
-            checkExistingUser();
-        });
-
-        // ২. কার্ড সিলেক্ট করলে হাইলাইট করার ভিজ্যুয়াল ইফেক্ট (Tailwind Dynamic Class)
-        function highlightCard(areaId) {
-            selectedAreaId = areaId;
-            
-            // আগের সব কার্ডের বর্ডার নরমাল করা
-            document.querySelectorAll('#onboard-card-grid > div').forEach(card => {
-                card.classList.remove('border-blue-600', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-                card.classList.add('border-gray-200', 'bg-white');
-            });
-
-            // সিলেক্টেড কার্ডটিকে আকর্ষণীয় নীল বর্ডার দেওয়া
-            const activeCard = document.getElementById(`card-${areaId}`);
-            if (activeCard) {
-                activeCard.classList.remove('border-gray-200', 'bg-white');
-                activeCard.classList.add('border-blue-600', 'bg-blue-50', 'ring-4', 'ring-blue-100');
-            }
-
-            // "নিশ্চিত করুন" বাটনটি সচল (Enable) করা
-            const confirmBtn = document.getElementById('confirm-area-btn');
-            confirmBtn.disabled = false;
-            confirmBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-            confirmBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
-        }
-
-        // ৩. এলাকা LocalStorage-এ আজীবনের জন্য সেভ করা এবং ড্যাশবোর্ডে নিয়ে যাওয়া
-        function saveUserArea() {
-            if (!selectedAreaId) return;
-            localStorage.setItem('kpm_user_area', selectedAreaId); // ব্রাউজারে লক হয়ে গেল
-            goToDashboard();
-        }
-
-        // 4. ব্যবহারকারী আগে থেকেই এরিয়া সেভ করে রেখেছে কি না যাচাই করা (Auto-Redirect)
-        function checkExistingUser() {
-            const savedArea = localStorage.getItem('kpm_user_area');
-            if (savedArea) {
-                goToDashboard(); // ডিরেক্ট ড্যাশবোর্ডে স্কিপ করবে
-            }
-        }
 
         
 
 
             // --- ১. বর্তমান স্ট্যাটাস আপডেট লজিক ---
-        db.ref('current_status').on('value', (snap) => {
-            const data = snap.val();
-            if (data) {
-                // last_update চেক করা হয়েছে যাতে undefined না আসে
-                const displayTime = data.last_update || data.time || "অজানা";
-                
-                document.getElementById('current-status').innerText = data.status;
-                document.getElementById('status-time').innerText = `শেষ আপডেট: ${displayTime}`;
-                
-                // কার্ডের ব্যাকগ্রাউন্ড ও টেক্সট কালার পরিবর্তন
-                const card = document.getElementById('status-card');
-                const statusText = document.getElementById('current-status');
-                
-                if (data.status === "Online") {
-                    card.className = "p-8 rounded-2xl shadow-md text-center bg-green-50 border-2 border-green-200";
-                    statusText.className = "text-5xl font-black text-green-600";
-                } else {
-                    card.className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
-                    statusText.className = "text-5xl font-black text-red-600";
-                }
-            }
-        });
-
-        // --- হার্টবিট চেক লজিক (বিদ্যুৎ গেলে দ্রুত অফলাইন দেখানোর জন্য) ---
-        setInterval(() => {
-            const timeElement = document.getElementById('status-time');
-            if (!timeElement) return;
-
-            const statusTimeText = timeElement.innerText;
-            if (!statusTimeText.includes(':')) return;
-
-            // সময়টি আলাদা করে নেওয়া
-            const rawTime = statusTimeText.replace('শেষ আপডেট: ', '').trim();
-            const lastUpdate = new Date(rawTime.replace(/-/g, '/'));
-            const now = new Date();
-            
-            // যদি ৬০ সেকেন্ডের বেশি সময় ধরে কোনো রেসপন্স না আসে
-            const diffInSeconds = Math.floor((now - lastUpdate) / 1000);
-            
-            if (diffInSeconds > 60) {
-                document.getElementById('current-status').innerText = "Offline";
-                document.getElementById('status-card').className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
-                document.getElementById('current-status').className = "text-5xl font-black text-red-600";
-            }
-        }, 10000); // প্রতি ১০ সেকেন্ডে একবার চেক করবে
-
-
-
-
-        // --- ২. সময় গণনা ফাংশন (উন্নত সংস্করণ) ---
-        function calculateDuration(startTimeStr, endTimeStr) {
-            if (!startTimeStr || !endTimeStr) return "---";
-            try {
-                const start = new Date(startTimeStr);
-                const end = new Date(endTimeStr);
-                const diffMs = Math.abs(end - start);
-                const diffMins = Math.round(diffMs / 60000);
-                
-                if (diffMins < 1) return "কয়েক সেকেন্ড";
-                if (diffMins < 60) return `${diffMins} মি.`;
-                return `${Math.floor(diffMins / 60)}ঘ. ${diffMins % 60}মি.`;
-            } catch (e) {
-                return "---";
-            }
-        }
-
-        // ১. গ্লোবাল ফাংশন হিসেবে সবার উপরে এটি রাখুন
-        function getDurationMins(startTime, endTime) {
-            if (!startTime || !endTime) return 0;
-            try {
-                const start = new Date(startTime.replace(/-/g, '/'));
-                const end = new Date(endTime.replace(/-/g, '/'));
-                const diff = Math.abs(end - start);
-                return Math.round(diff / 60000);
-            } catch (e) { 
-                console.error("Duration calculation error:", e);
-                return 0; 
-            }
-        }
-
-        // সাপোর্ট ফাংশন (মিনিট বের করার জন্য)
-        function calculateDurationInMins(startStr, endStr) {
-            const start = new Date(startStr.replace(/-/g, '/'));
-            const end = new Date(endStr.replace(/-/g, '/'));
-            return Math.round(Math.abs(end - start) / 60000);
-        }
-
-        // ২. আপনার বাকি কোড এখান থেকে শুরু হবে (db.ref... ইত্যাদি)
-
-
-        db.ref('power_status').limitToLast(50).on('value', (snap) => {
-            const data = snap.val();
-            const tableBody = document.getElementById('log-table-body');
-            if (!tableBody || !data) return;
-
-            // --- ১. ডেটা প্রসেসিং ও সর্টিং (সবচেয়ে গুরুত্বপূর্ণ ধাপ) ---
-            const items = Object.values(data)
-                .filter(i => i && i.time)
-                .sort((a, b) => new Date(a.time.replace(/-/g, '/')) - new Date(b.time.replace(/-/g, '/')));
-                // এখানে ছোট থেকে বড় (Oldest to Newest) সাজানো হয়েছে ক্যালকুলেশনের সুবিধার জন্য
-
-            tableBody.innerHTML = '';
-            let labels = [], points = [];
-            let todayCuts = 0;
-            let todayMinutes = 0;
-            const todayDate = new Date().toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
-
-            // --- ২. এনালিটিক্স ও গ্রাফ ডেটা প্রস্তুত করা ---
-            let lastRenderedStatus = null;
-            let processedItemsForTable = [];
-
-            items.forEach((current, index) => {
-                const previous = items[index - 1];
-                const entryDate = new Date(current.time).toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
-
-                // আজকের ক্যালকুলেশন
-                if (entryDate === todayDate) {
-                    if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                        todayCuts++;
-                        todayMinutes += calculateDurationInMins(previous.time, current.time);
-                    }
-                }
-
-                // গ্রাফের জন্য ডেটা (Duplicate Filter)
-                if (current.status !== lastRenderedStatus) {
-                    const timeOnly = current.time.includes(',') ? current.time.split(',')[1] : current.time;
-                    labels.push(timeOnly);
-                    points.push(current.status === 'Online' ? 1 : 0);
+            db.ref('current_status').on('value', (snap) => {
+                const data = snap.val();
+                if (data) {
+                    // last_update চেক করা হয়েছে যাতে undefined না আসে
+                    const displayTime = data.last_update || data.time || "অজানা";
                     
-                    // টেবিলের জন্য আলাদা লিস্টে রাখা যাতে পরে উল্টে (Reverse) দেওয়া যায়
-                    processedItemsForTable.push({current, previous});
-                    lastRenderedStatus = current.status;
-                }
-            });
-
-            // --- ৩. কার্ড আপডেট ---
-            document.getElementById('today-count').innerText = `${todayCuts} বার`;
-            document.getElementById('today-total-time').innerText = `${todayMinutes} মি.`;
-            document.getElementById('today-avg-time').innerText = todayCuts > 0 ? `${Math.round(todayMinutes / todayCuts)} মি.` : "০ মি.";
-            
-            // রিলায়িবিলিটি (স্থায়িত্ব) স্কোর
-            const now = new Date();
-            const passedMinsToday = (now.getHours() * 60) + now.getMinutes();
-            const score = passedMinsToday > 0 ? (((passedMinsToday - todayMinutes) / passedMinsToday) * 100).toFixed(1) : 100;
-            document.getElementById('reliability-score').innerText = `${score}%`;
-
-            // --- ৪. টেবিল আপডেট (Newest First) ---
-            processedItemsForTable.reverse().forEach(item => {
-                const current = item.current;
-                const previous = item.previous;
-
-                let durationText = "---";
-                if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                    durationText = calculateDuration(previous.time, current.time);
-                }
-
-                const row = `<tr>
-                    <td class="px-4 py-4 font-mono text-[10px] md:text-xs">${current.time}</td>
-                    <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
-                    <td class="px-4 py-4 text-[10px] md:text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
-                        ${current.status === 'Online' ? 'লোডশেডিং: ' + durationText : '---'}
-                    </td>
-                </tr>`;
-                tableBody.innerHTML += row;
-            });
-
-            // --- ৫. গ্রাফ আপডেট ---
-            if (powerChart && powerChart.data.datasets[0]) {
-                powerChart.data.labels = labels.slice(-20);
-                powerChart.data.datasets[0].data = points.slice(-20);
-                powerChart.update();
-            }
-        });
-
-        // --- তারিখ ফিল্টারিং মডিউল (আপনার মূল কোডের বাইরে থাকবে) ---
-        // --- তারিখ ফিল্টারিং এবং ডাইনামিক অ্যানালিটিক্স সিঙ্ক মডিউল (Jira: KPM-09) ---
-        const filterInput = document.getElementById('filter-date');
-        if (filterInput) {
-            // ডিফল্ট হিসেবে আজকের তারিখ সেট করা (Format: YYYY-MM-DD)
-            filterInput.value = new Date().toISOString().split('T')[0];
-
-            // তারিখ পরিবর্তন হলে এই ইভেন্টটি কাজ করবে
-            filterInput.addEventListener('change', () => {
-                const selectedDate = filterInput.value; // ইউজারের সিলেক্ট করা তারিখ
-                
-                // ফায়ারবেস 'power_status' নোড থেকে ডেটা আনা (কুয়েরি লিমিট ১৫০ রাখা হলো)
-                db.ref('power_status').limitToLast(150).once('value', (snap) => {
-                    const data = snap.val();
-                    const tableBody = document.getElementById('log-table-body');
-                    if (!tableBody || !data) return;
-
-                    tableBody.innerHTML = ''; // টেবিল খালি করা
+                    document.getElementById('current-status').innerText = data.status;
+                    document.getElementById('status-time').innerText = `শেষ আপডেট: ${displayTime}`;
                     
-                    // ডেটা কালানুক্রমিকভাবে সাজানো (Oldest to Newest)
-                    const items = Object.values(data)
-                        .filter(i => i && i.time)
-                        .sort((a, b) => new Date(a.time.replace(/-/g, '/')) - new Date(b.time.replace(/-/g, '/')));
-
-                    let lastStatusForTable = null;
-                    let matchCount = 0;
+                    // কার্ডের ব্যাকগ্রাউন্ড ও টেক্সট কালার পরিবর্তন
+                    const card = document.getElementById('status-card');
+                    const statusText = document.getElementById('current-status');
                     
-                    // ডাইনামিক অ্যানালিটিক্স ভ্যারিয়েবলসমূহ
-                    let selectedDayCuts = 0;
-                    let selectedDayMinutes = 0;
-
-                    // ডেটার ওপর লুপ চালানো (Newest First এ টেবিল দেখানোর জন্য উল্টো লুপ)
-                    for (let i = items.length - 1; i >= 0; i--) {
-                        const current = items[i];
-                        const previous = items[i - 1];
-
-                        if (current.status === lastStatusForTable) continue;
-                        lastStatusForTable = current.status;
-
-                        // ডেটার তারিখটিকে YYYY-MM-DD ফরম্যাটে রূপান্তর
-                        const entryDateObj = new Date(current.time);
-                        const entryYear = entryDateObj.getFullYear();
-                        const entryMonth = String(entryDateObj.getMonth() + 1).padStart(2, '0');
-                        const entryDay = String(entryDateObj.getDate()).padStart(2, '0');
-                        const entryDateFormatted = `${entryYear}-${entryMonth}-${entryDay}`;
-
-                        // যদি ফায়ারবেসের ডেটার তারিখ ইউজারের সিলেক্ট করা তারিখের সাথে মিলে যায়
-                        if (entryDateFormatted === selectedDate) {
-                            matchCount++;
-
-                            // লোডশেডিং সংখ্যা ও মিনিট ক্যালকুলেশন ইঞ্জিন
-                            if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                                selectedDayCuts++;
-                                selectedDayMinutes += calculateDurationInMins(previous.time, current.time);
-                            }
-
-                            // টেবিল রো (Row) তৈরি
-                            let durationText = "---";
-                            if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                                durationText = calculateDuration(previous.time, current.time);
-                            }
-
-                            const row = `<tr>
-                                <td class="px-4 py-4 font-mono text-[10px] md:text-xs">${current.time}</td>
-                                <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
-                                <td class="px-4 py-4 text-[10px] md:text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
-                                    ${current.status === 'Online' ? 'লোডশেডিং: ' + durationText : '---'}
-                                </td>
-                            </tr>`;
-                            tableBody.innerHTML += row;
-                        }
-                    }
-
-                    // --- উপরের ৪টি অ্যানালিটিক্স কার্ড ডাইনামিকভাবে সিঙ্ক ও আপডেট করা ---
-                    const countCard = document.getElementById('today-count');
-                    const totalTimeCard = document.getElementById('today-total-time');
-                    const avgTimeCard = document.getElementById('today-avg-time');
-                    const reliabilityCard = document.getElementById('reliability-score');
-
-                    if (matchCount > 0) {
-                        // কার্ড ১: নির্দিষ্ট দিনের মোট লোডশেডিং সংখ্যা
-                        if (countCard) countCard.innerText = `${selectedDayCuts} বার`;
-                        
-                        // কার্ড ২: নির্দিষ্ট দিনের মোট অফলাইন সময়
-                        if (totalTimeCard) totalTimeCard.innerText = `${selectedDayMinutes} মি.`;
-                        
-                        // কার্ড ৩: নির্দিষ্ট দিনের গড় সময়
-                        if (avgTimeCard) {
-                            avgTimeCard.innerText = selectedDayCuts > 0 ? `${Math.round(selectedDayMinutes / selectedDayCuts)} মি.` : "০ মি.";
-                        }
-                        
-                        // কার্ড ৪: নির্দিষ্ট দিনের বিদ্যুতের স্থায়িত্ব (Reliability Score)
-                        if (reliabilityCard) {
-                            const totalDayMinutes = 1440; // ২৪ ঘণ্টা = ১৪৪০ মিনিট
-                            const score = (((totalDayMinutes - selectedDayMinutes) / totalDayMinutes) * 100).toFixed(1);
-                            reliabilityCard.innerText = `${score < 0 ? 0 : score}%`;
-                        }
+                    if (data.status === "Online") {
+                        card.className = "p-8 rounded-2xl shadow-md text-center bg-green-50 border-2 border-green-200";
+                        statusText.className = "text-5xl font-black text-green-600";
                     } else {
-                        // যদি ঐ তারিখে কোনো ডেটা বা লগ না থাকে তবে কার্ডগুলো রিসেট হবে
-                        if (countCard) countCard.innerText = "০ বার";
-                        if (totalTimeCard) totalTimeCard.innerText = "০ মি.";
-                        if (avgTimeCard) avgTimeCard.innerText = "০ মি.";
-                        if (reliabilityCard) reliabilityCard.innerText = "100%";
+                        card.className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
+                        statusText.className = "text-5xl font-black text-red-600";
+                    }
+                }
+            });
+
+            // --- হার্টবিট চেক লজিক (বিদ্যুৎ গেলে দ্রুত অফলাইন দেখানোর জন্য) ---
+            setInterval(() => {
+                const timeElement = document.getElementById('status-time');
+                if (!timeElement) return;
+
+                const statusTimeText = timeElement.innerText;
+                if (!statusTimeText.includes(':')) return;
+
+                // সময়টি আলাদা করে নেওয়া
+                const rawTime = statusTimeText.replace('শেষ আপডেট: ', '').trim();
+                const lastUpdate = new Date(rawTime.replace(/-/g, '/'));
+                const now = new Date();
+                
+                // যদি ৬০ সেকেন্ডের বেশি সময় ধরে কোনো রেসপন্স না আসে
+                const diffInSeconds = Math.floor((now - lastUpdate) / 1000);
+                
+                if (diffInSeconds > 60) {
+                    document.getElementById('current-status').innerText = "Offline";
+                    document.getElementById('status-card').className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
+                    document.getElementById('current-status').className = "text-5xl font-black text-red-600";
+                }
+            }, 10000); // প্রতি ১০ সেকেন্ডে একবার চেক করবে
+
+
+
+
+            // --- ২. সময় গণনা ফাংশন (উন্নত সংস্করণ) ---
+            function calculateDuration(startTimeStr, endTimeStr) {
+                if (!startTimeStr || !endTimeStr) return "---";
+                try {
+                    const start = new Date(startTimeStr);
+                    const end = new Date(endTimeStr);
+                    const diffMs = Math.abs(end - start);
+                    const diffMins = Math.round(diffMs / 60000);
+                    
+                    if (diffMins < 1) return "কয়েক সেকেন্ড";
+                    if (diffMins < 60) return `${diffMins} মি.`;
+                    return `${Math.floor(diffMins / 60)}ঘ. ${diffMins % 60}মি.`;
+                } catch (e) {
+                    return "---";
+                }
+            }
+
+            // ১. গ্লোবাল ফাংশন হিসেবে সবার উপরে এটি রাখুন
+            function getDurationMins(startTime, endTime) {
+                if (!startTime || !endTime) return 0;
+                try {
+                    const start = new Date(startTime.replace(/-/g, '/'));
+                    const end = new Date(endTime.replace(/-/g, '/'));
+                    const diff = Math.abs(end - start);
+                    return Math.round(diff / 60000);
+                } catch (e) { 
+                    console.error("Duration calculation error:", e);
+                    return 0; 
+                }
+            }
+
+            // সাপোর্ট ফাংশন (মিনিট বের করার জন্য)
+            function calculateDurationInMins(startStr, endStr) {
+                const start = new Date(startStr.replace(/-/g, '/'));
+                const end = new Date(endStr.replace(/-/g, '/'));
+                return Math.round(Math.abs(end - start) / 60000);
+            }
+
+            // ২. আপনার বাকি কোড এখান থেকে শুরু হবে (db.ref... ইত্যাদি)
+
+
+            db.ref('power_status').limitToLast(50).on('value', (snap) => {
+                const data = snap.val();
+                const tableBody = document.getElementById('log-table-body');
+                if (!tableBody || !data) return;
+
+                // --- ১. ডেটা প্রসেসিং ও সর্টিং (সবচেয়ে গুরুত্বপূর্ণ ধাপ) ---
+                const items = Object.values(data)
+                    .filter(i => i && i.time)
+                    .sort((a, b) => new Date(a.time.replace(/-/g, '/')) - new Date(b.time.replace(/-/g, '/')));
+                    // এখানে ছোট থেকে বড় (Oldest to Newest) সাজানো হয়েছে ক্যালকুলেশনের সুবিধার জন্য
+
+                tableBody.innerHTML = '';
+                let labels = [], points = [];
+                let todayCuts = 0;
+                let todayMinutes = 0;
+                const todayDate = new Date().toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
+
+                // --- ২. এনালিটিক্স ও গ্রাফ ডেটা প্রস্তুত করা ---
+                let lastRenderedStatus = null;
+                let processedItemsForTable = [];
+
+                items.forEach((current, index) => {
+                    const previous = items[index - 1];
+                    const entryDate = new Date(current.time).toLocaleDateString("en-BD", {timeZone: "Asia/Dhaka"});
+
+                    // আজকের ক্যালকুলেশন
+                    if (entryDate === todayDate) {
+                        if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                            todayCuts++;
+                            todayMinutes += calculateDurationInMins(previous.time, current.time);
+                        }
+                    }
+
+                    // গ্রাফের জন্য ডেটা (Duplicate Filter)
+                    if (current.status !== lastRenderedStatus) {
+                        const timeOnly = current.time.includes(',') ? current.time.split(',')[1] : current.time;
+                        labels.push(timeOnly);
+                        points.push(current.status === 'Online' ? 1 : 0);
                         
-                        // টেবিলে 'নো ডেটা' মেসেজ দেখানো
-                        tableBody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-sm text-gray-400">এই তারিখে কোনো লোডশেডিং রেকর্ড নেই।</td></tr>`;
+                        // টেবিলের জন্য আলাদা লিস্টে রাখা যাতে পরে উল্টে (Reverse) দেওয়া যায়
+                        processedItemsForTable.push({current, previous});
+                        lastRenderedStatus = current.status;
                     }
                 });
-            });
-        }
 
-
-
-
-        // সাপ্তাহিক চার্ট ইনিশিয়েট করা barchart এর জন্য
-        const ctxWeekly = document.getElementById('weeklyBarChart').getContext('2d');
-        const weeklyChart = new Chart(ctxWeekly, {
-            type: 'bar',
-            data: {
-                labels: [], // দিনগুলো এখানে আসবে
-                datasets: [{
-                    label: 'মিনিট',
-                    data: [], // লোডশেডিং সময় এখানে আসবে
-                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                    borderColor: '#3b82f6',
-                    borderWidth: 2,
-                    borderRadius: 8
-                }]
-            },
-            options: {
-                scales: { y: { beginAtZero: true } }
-            }
-        });
-
-        // ডেটাবেজ থেকে গত ৭ দিনের হিসাব বের করা 
-        // সাপ্তাহিক চার্ট আপডেট লজিক
-        db.ref('power_status').on('value', (snap) => {
-            const data = snap.val();
-            if (!data) return;
-
-            const items = Object.values(data).filter(i => i.time);
-            const weeklySummary = {}; 
-
-            items.forEach((current, index) => {
-                const previous = items[index - 1];
+                // --- ৩. কার্ড আপডেট ---
+                document.getElementById('today-count').innerText = `${todayCuts} বার`;
+                document.getElementById('today-total-time').innerText = `${todayMinutes} মি.`;
+                document.getElementById('today-avg-time').innerText = todayCuts > 0 ? `${Math.round(todayMinutes / todayCuts)} মি.` : "০ মি.";
                 
-                if (current.status === 'Online' && previous && previous.status === 'Offline') {
-                    // ১. তারিখ আলাদা করা (কমা দিয়ে ভাগ করে শুধু প্রথম অংশ নেওয়া)
-                    // এটি "5/11/2026, 10:40:49 AM" থেকে "5/11/2026" বের করবে
-                    //const dateOnly = current.time.split(',')[0].trim();
-                    // ম্যানুয়াল ডেটার ফরম্যাট যেমনই হোক, এটি তাকে স্ট্যান্ডার্ড YYYY-MM-DD বা স্ট্যান্ডার্ড ডেটে কনভার্ট করবে
-                    // ১. তারিখ নিখুঁত করতে কমা দিয়ে স্প্লিট করে ট্রিম করুন (আপনার মূল সফল লজিক)
-                    let dateOnly = current.time.split(',')[0].trim();
+                // রিলায়িবিলিটি (স্থায়িত্ব) স্কোর
+                const now = new Date();
+                const passedMinsToday = (now.getHours() * 60) + now.getMinutes();
+                const score = passedMinsToday > 0 ? (((passedMinsToday - todayMinutes) / passedMinsToday) * 100).toFixed(1) : 100;
+                document.getElementById('reliability-score').innerText = `${score}%`;
 
-                    // ২. সেফটি চেক: যদি ম্যানুয়াল এন্ট্রির কারণে তারিখে কোনো স্ল্যাশ বা স্পেসের অমিল থাকে, তবে সেটিকে স্ট্যান্ডার্ড করে নেবে
-                    if(dateOnly.includes('/')) {
-                        const parts = dateOnly.split('/');
-                        // যদি সিঙ্গেল ডিজিট মাস/দিন হয় (যেমন ৫), তবে সেটিকে স্ট্যান্ডার্ড ফরম্যাটে রূপান্তর করবে
-                        dateOnly = `${parseInt(parts[0])}/${parseInt(parts[1])}/${parts[2]}`;
+                // --- ৪. টেবিল আপডেট (Newest First) ---
+                processedItemsForTable.reverse().forEach(item => {
+                    const current = item.current;
+                    const previous = item.previous;
+
+                    let durationText = "---";
+                    if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                        durationText = calculateDuration(previous.time, current.time);
                     }
 
+                    const row = `<tr>
+                        <td class="px-4 py-4 font-mono text-[10px] md:text-xs">${current.time}</td>
+                        <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
+                        <td class="px-4 py-4 text-[10px] md:text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
+                            ${current.status === 'Online' ? 'লোডশেডিং: ' + durationText : '---'}
+                        </td>
+                    </tr>`;
+                    tableBody.innerHTML += row;
+                });
 
-                    
-                    // ২. ডিউরেশন বের করা
-                    const mins = getDurationMins(previous.time, current.time);
-                    
-                    if (mins > 0) {
-                        weeklySummary[dateOnly] = (weeklySummary[dateOnly] || 0) + mins;
-                    }
+                // --- ৫. গ্রাফ আপডেট ---
+                if (powerChart && powerChart.data.datasets[0]) {
+                    powerChart.data.labels = labels.slice(-20);
+                    powerChart.data.datasets[0].data = points.slice(-20);
+                    powerChart.update();
                 }
             });
 
-            // ৩. চার্টে ডেটা পুশ করা (ঠিক শেষ ৭ দিন লক করার নিখুঁত লজিক)
-            // Object.keys দিয়ে সব ডেট নিয়ে তা থেকে শুধু শেষ ৭টি ডেট কেটে নেওয়া হচ্ছে
-            const finalLabels = Object.keys(weeklySummary).slice(-7);
-            const finalData = finalLabels.map(date => weeklySummary[date]);
+            // --- তারিখ ফিল্টারিং মডিউল (আপনার মূল কোডের বাইরে থাকবে) ---
+            // --- তারিখ ফিল্টারিং এবং ডাইনামিক অ্যানালিটিক্স সিঙ্ক মডিউল (Jira: KPM-09) ---
+            const filterInput = document.getElementById('filter-date');
+            if (filterInput) {
+                // ডিফল্ট হিসেবে আজকের তারিখ সেট করা (Format: YYYY-MM-DD)
+                filterInput.value = new Date().toISOString().split('T')[0];
 
-            if (finalLabels.length > 0) {
-                weeklyChart.data.labels = finalLabels;
-                weeklyChart.data.datasets[0].data = finalData; // আপনার datasets[0] স্ট্রাকচার ঠিক রাখা হলো
-                weeklyChart.update();
+                // তারিখ পরিবর্তন হলে এই ইভেন্টটি কাজ করবে
+                filterInput.addEventListener('change', () => {
+                    const selectedDate = filterInput.value; // ইউজারের সিলেক্ট করা তারিখ
+                    
+                    // ফায়ারবেস 'power_status' নোড থেকে ডেটা আনা (কুয়েরি লিমিট ১৫০ রাখা হলো)
+                    db.ref('power_status').limitToLast(150).once('value', (snap) => {
+                        const data = snap.val();
+                        const tableBody = document.getElementById('log-table-body');
+                        if (!tableBody || !data) return;
+
+                        tableBody.innerHTML = ''; // টেবিল খালি করা
+                        
+                        // ডেটা কালানুক্রমিকভাবে সাজানো (Oldest to Newest)
+                        const items = Object.values(data)
+                            .filter(i => i && i.time)
+                            .sort((a, b) => new Date(a.time.replace(/-/g, '/')) - new Date(b.time.replace(/-/g, '/')));
+
+                        let lastStatusForTable = null;
+                        let matchCount = 0;
+                        
+                        // ডাইনামিক অ্যানালিটিক্স ভ্যারিয়েবলসমূহ
+                        let selectedDayCuts = 0;
+                        let selectedDayMinutes = 0;
+
+                        // ডেটার ওপর লুপ চালানো (Newest First এ টেবিল দেখানোর জন্য উল্টো লুপ)
+                        for (let i = items.length - 1; i >= 0; i--) {
+                            const current = items[i];
+                            const previous = items[i - 1];
+
+                            if (current.status === lastStatusForTable) continue;
+                            lastStatusForTable = current.status;
+
+                            // ডেটার তারিখটিকে YYYY-MM-DD ফরম্যাটে রূপান্তর
+                            const entryDateObj = new Date(current.time);
+                            const entryYear = entryDateObj.getFullYear();
+                            const entryMonth = String(entryDateObj.getMonth() + 1).padStart(2, '0');
+                            const entryDay = String(entryDateObj.getDate()).padStart(2, '0');
+                            const entryDateFormatted = `${entryYear}-${entryMonth}-${entryDay}`;
+
+                            // যদি ফায়ারবেসের ডেটার তারিখ ইউজারের সিলেক্ট করা তারিখের সাথে মিলে যায়
+                            if (entryDateFormatted === selectedDate) {
+                                matchCount++;
+
+                                // লোডশেডিং সংখ্যা ও মিনিট ক্যালকুলেশন ইঞ্জিন
+                                if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                                    selectedDayCuts++;
+                                    selectedDayMinutes += calculateDurationInMins(previous.time, current.time);
+                                }
+
+                                // টেবিল রো (Row) তৈরি
+                                let durationText = "---";
+                                if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                                    durationText = calculateDuration(previous.time, current.time);
+                                }
+
+                                const row = `<tr>
+                                    <td class="px-4 py-4 font-mono text-[10px] md:text-xs">${current.time}</td>
+                                    <td class="px-4 py-4"><span class="px-2 py-1 rounded text-[10px] font-bold ${current.status === 'Online' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${current.status}</span></td>
+                                    <td class="px-4 py-4 text-[10px] md:text-xs font-bold text-right ${current.status === 'Online' ? 'text-red-500' : 'text-gray-400'}">
+                                        ${current.status === 'Online' ? 'লোডশেডিং: ' + durationText : '---'}
+                                    </td>
+                                </tr>`;
+                                tableBody.innerHTML += row;
+                            }
+                        }
+
+                        // --- উপরের ৪টি অ্যানালিটিক্স কার্ড ডাইনামিকভাবে সিঙ্ক ও আপডেট করা ---
+                        const countCard = document.getElementById('today-count');
+                        const totalTimeCard = document.getElementById('today-total-time');
+                        const avgTimeCard = document.getElementById('today-avg-time');
+                        const reliabilityCard = document.getElementById('reliability-score');
+
+                        if (matchCount > 0) {
+                            // কার্ড ১: নির্দিষ্ট দিনের মোট লোডশেডিং সংখ্যা
+                            if (countCard) countCard.innerText = `${selectedDayCuts} বার`;
+                            
+                            // কার্ড ২: নির্দিষ্ট দিনের মোট অফলাইন সময়
+                            if (totalTimeCard) totalTimeCard.innerText = `${selectedDayMinutes} মি.`;
+                            
+                            // কার্ড ৩: নির্দিষ্ট দিনের গড় সময়
+                            if (avgTimeCard) {
+                                avgTimeCard.innerText = selectedDayCuts > 0 ? `${Math.round(selectedDayMinutes / selectedDayCuts)} মি.` : "০ মি.";
+                            }
+                            
+                            // কার্ড ৪: নির্দিষ্ট দিনের বিদ্যুতের স্থায়িত্ব (Reliability Score)
+                            if (reliabilityCard) {
+                                const totalDayMinutes = 1440; // ২৪ ঘণ্টা = ১৪৪০ মিনিট
+                                const score = (((totalDayMinutes - selectedDayMinutes) / totalDayMinutes) * 100).toFixed(1);
+                                reliabilityCard.innerText = `${score < 0 ? 0 : score}%`;
+                            }
+                        } else {
+                            // যদি ঐ তারিখে কোনো ডেটা বা লগ না থাকে তবে কার্ডগুলো রিসেট হবে
+                            if (countCard) countCard.innerText = "০ বার";
+                            if (totalTimeCard) totalTimeCard.innerText = "০ মি.";
+                            if (avgTimeCard) avgTimeCard.innerText = "০ মি.";
+                            if (reliabilityCard) reliabilityCard.innerText = "100%";
+                            
+                            // টেবিলে 'নো ডেটা' মেসেজ দেখানো
+                            tableBody.innerHTML = `<tr><td colspan="3" class="px-4 py-8 text-center text-sm text-gray-400">এই তারিখে কোনো লোডশেডিং রেকর্ড নেই।</td></tr>`;
+                        }
+                    });
+                });
             }
 
-        });
 
-        // 📢 ফায়ারবেস থেকে জরুরি নোটিশের লাইভ ডেটা রিড করার লজিক
-        db.ref('emergency_notice').on('value', (snap) => {
-            const data = snap.val();
-            const container = document.getElementById('notice-board-container');
-            const textLabel = document.getElementById('live-notice-text');
 
-            // যদি নোটিশের স্ট্যাটাস Active থাকে এবং টেক্সট ফাঁকা না হয়, তবেই ড্যাশবোর্ডে দেখাবে
-            if (data && data.status === 'Active' && data.text) {
-                textLabel.innerText = data.text;
-                container.classList.remove('hidden'); // নোটিশ বক্সটি অন হবে
-            } else {
-                container.classList.add('hidden'); // নোটিশ বক্সটি সম্পূর্ণ হাইড বা বন্ধ থাকবে
-            }
-        });
 
-        // ১. মডিউল ৩-এর মূল ফাংশন: গ্রাহকের নিজস্ব এলাকার ডেটা ট্র্যাক করা
-        function loadClientDashboard() {
-            const savedAreaId = localStorage.getItem('kpm_user_area');
-            if (!savedAreaId) return;
-
-            console.log("Loading Dashboard for Area:", savedAreaId);
-
-            // ফায়ারবেস থেকে শুধুমাত্র এই নির্দিষ্ট এলাকার লাইভ ডেটা রিড করা
-            db.ref(`kalkini_power_monitor/areas/${savedAreaId}`).on('value', (snapshot) => {
-                const areaData = snapshot.val();
-                if (!areaData) return;
-
-                // ৫.১ টাস্ক: গ্রাহকের স্ক্রিনের জন্য ডেটা মাস্কিং (Data Masking)
-                let displayStatus = "অনলাইন";
-                let cardBgClass = "bg-gradient-to-br from-green-50 to-emerald-100 border-emerald-200 text-emerald-800 shadow-emerald-100";
-                let statusColorClass = "text-emerald-600";
-
-                if (areaData.status === "Offline") {
-                    displayStatus = "লোডশেডিং";
-                    cardBgClass = "bg-gradient-to-br from-red-50 to-rose-100 border-rose-200 text-rose-800 shadow-rose-100";
-                    statusColorClass = "text-rose-600";
+            // সাপ্তাহিক চার্ট ইনিশিয়েট করা barchart এর জন্য
+            const ctxWeekly = document.getElementById('weeklyBarChart').getContext('2d');
+            const weeklyChart = new Chart(ctxWeekly, {
+                type: 'bar',
+                data: {
+                    labels: [], // দিনগুলো এখানে আসবে
+                    datasets: [{
+                        label: 'মিনিট',
+                        data: [], // লোডশেডিং সময় এখানে আসবে
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    scales: { y: { beginAtZero: true } }
                 }
-
-                // আপনার বিদ্যমান ID গুলো ধরে রিয়েল-টাইমে UI আপডেট করা (কোনো HTML চেঞ্জ ছাড়া)
-                const statusCard = document.getElementById('status-card');
-                const currentStatus = document.getElementById('current-status');
-                const statusTime = document.getElementById('status-time');
-
-                if (statusCard) {
-                    // কার্ডের ব্যাকগ্রাউন্ড ও বর্ডার ডাইনামিকালি চেঞ্জ হবে
-                    statusCard.className = `p-6 md:p-8 rounded-3xl shadow-lg text-center border transition-all duration-500 mb-6 ${cardBgClass}`;
-                }
-                if (currentStatus) {
-                    // Loading... লেখার জায়গায় "অনলাইন" বা "লোডশেডিং" বসবে
-                    currentStatus.innerText = displayStatus;
-                    currentStatus.className = `text-5xl md:text-6xl font-black uppercase tracking-tighter ${statusColorClass}`;
-                }
-                if (statusTime) {
-                    // সর্বশেষ পিং বা টাইমস্ট্যাম্প আপডেট হবে
-                    statusTime.innerText = `সর্বশেষ আপডেট: ${areaData.last_ping} | এলাকা: ${areaData.name}`;
-                }
-
-                // ২. এই সুনির্দিষ্ট এলাকার ওপর ভিত্তি করে আপনার চার্ট এবং টেবিল রেন্ডার করা
-                updateClientChartsAndTable(savedAreaId);
             });
-        }
 
-        // ২. চার্ট ও টেবিলের জন্য নির্দিষ্ট এলাকার হিস্ট্রি ফিল্টার করা
-        function updateClientChartsAndTable(areaId) {
-            console.log("Filtering history logs for:", areaId);
-            // (এখানে আপনার বিদ্যমান চার্ট ড্র করার এবং টেবিল লুপের কোডটি বসে যাবে)
-        }
+            // ডেটাবেজ থেকে গত ৭ দিনের হিসাব বের করা 
+            // সাপ্তাহিক চার্ট আপডেট লজিক
+            db.ref('power_status').on('value', (snap) => {
+                const data = snap.val();
+                if (!data) return;
 
-        // ৩. আমাদের আগের goToDashboard ফাংশনটি মডিফাই করে এই লোড ফাংশনটি জুড়ে দেওয়া
-        // (আপনার স্ক্রিপ্টের আগের পুরনো goToDashboard ফাংশনটি মুছে এটি দিয়ে রিপ্লেস করবেন)
-        function goToDashboard() {
-            document.getElementById('onboarding-screen').classList.add('hidden');
-            document.getElementById('main-dashboard').classList.remove('hidden');
-            
-            // ড্যাশবোর্ডে আসা মাত্রই গ্রাহকের ডাটা ফিল্টারিং ইঞ্জিন চালু করা
-            loadClientDashboard();
-        }
+                const items = Object.values(data).filter(i => i.time);
+                const weeklySummary = {}; 
+
+                items.forEach((current, index) => {
+                    const previous = items[index - 1];
+                    
+                    if (current.status === 'Online' && previous && previous.status === 'Offline') {
+                        // ১. তারিখ আলাদা করা (কমা দিয়ে ভাগ করে শুধু প্রথম অংশ নেওয়া)
+                        // এটি "5/11/2026, 10:40:49 AM" থেকে "5/11/2026" বের করবে
+                        //const dateOnly = current.time.split(',')[0].trim();
+                        // ম্যানুয়াল ডেটার ফরম্যাট যেমনই হোক, এটি তাকে স্ট্যান্ডার্ড YYYY-MM-DD বা স্ট্যান্ডার্ড ডেটে কনভার্ট করবে
+                        // ১. তারিখ নিখুঁত করতে কমা দিয়ে স্প্লিট করে ট্রিম করুন (আপনার মূল সফল লজিক)
+                        let dateOnly = current.time.split(',')[0].trim();
+
+                        // ২. সেফটি চেক: যদি ম্যানুয়াল এন্ট্রির কারণে তারিখে কোনো স্ল্যাশ বা স্পেসের অমিল থাকে, তবে সেটিকে স্ট্যান্ডার্ড করে নেবে
+                        if(dateOnly.includes('/')) {
+                            const parts = dateOnly.split('/');
+                            // যদি সিঙ্গেল ডিজিট মাস/দিন হয় (যেমন ৫), তবে সেটিকে স্ট্যান্ডার্ড ফরম্যাটে রূপান্তর করবে
+                            dateOnly = `${parseInt(parts[0])}/${parseInt(parts[1])}/${parts[2]}`;
+                        }
+
+
+                        
+                        // ২. ডিউরেশন বের করা
+                        const mins = getDurationMins(previous.time, current.time);
+                        
+                        if (mins > 0) {
+                            weeklySummary[dateOnly] = (weeklySummary[dateOnly] || 0) + mins;
+                        }
+                    }
+                });
+
+                // ৩. চার্টে ডেটা পুশ করা (ঠিক শেষ ৭ দিন লক করার নিখুঁত লজিক)
+                // Object.keys দিয়ে সব ডেট নিয়ে তা থেকে শুধু শেষ ৭টি ডেট কেটে নেওয়া হচ্ছে
+                const finalLabels = Object.keys(weeklySummary).slice(-7);
+                const finalData = finalLabels.map(date => weeklySummary[date]);
+
+                if (finalLabels.length > 0) {
+                    weeklyChart.data.labels = finalLabels;
+                    weeklyChart.data.datasets[0].data = finalData; // আপনার datasets[0] স্ট্রাকচার ঠিক রাখা হলো
+                    weeklyChart.update();
+                }
+
+            });
+
+            // 📢 ফায়ারবেস থেকে জরুরি নোটিশের লাইভ ডেটা রিড করার লজিক
+            db.ref('emergency_notice').on('value', (snap) => {
+                const data = snap.val();
+                const container = document.getElementById('notice-board-container');
+                const textLabel = document.getElementById('live-notice-text');
+
+                // যদি নোটিশের স্ট্যাটাস Active থাকে এবং টেক্সট ফাঁকা না হয়, তবেই ড্যাশবোর্ডে দেখাবে
+                if (data && data.status === 'Active' && data.text) {
+                    textLabel.innerText = data.text;
+                    container.classList.remove('hidden'); // নোটিশ বক্সটি অন হবে
+                } else {
+                    container.classList.add('hidden'); // নোটিশ বক্সটি সম্পূর্ণ হাইড বা বন্ধ থাকবে
+                }
+            });
+
+            // ১. মডিউল ৩-এর মূল ফাংশন: গ্রাহকের নিজস্ব এলাকার ডেটা ট্র্যাক করা
+            function loadClientDashboard() {
+                const savedAreaId = localStorage.getItem('kpm_user_area');
+                if (!savedAreaId) return;
+
+                console.log("Loading Dashboard for Area:", savedAreaId);
+
+                // ফায়ারবেস থেকে শুধুমাত্র এই নির্দিষ্ট এলাকার লাইভ ডেটা রিড করা
+                db.ref(`kalkini_power_monitor/areas/${savedAreaId}`).on('value', (snapshot) => {
+                    const areaData = snapshot.val();
+                    if (!areaData) return;
+
+                    // ৫.১ টাস্ক: গ্রাহকের স্ক্রিনের জন্য ডেটা মাস্কিং (Data Masking)
+                    let displayStatus = "অনলাইন";
+                    let cardBgClass = "bg-gradient-to-br from-green-50 to-emerald-100 border-emerald-200 text-emerald-800 shadow-emerald-100";
+                    let statusColorClass = "text-emerald-600";
+
+                    if (areaData.status === "Offline") {
+                        displayStatus = "লোডশেডিং";
+                        cardBgClass = "bg-gradient-to-br from-red-50 to-rose-100 border-rose-200 text-rose-800 shadow-rose-100";
+                        statusColorClass = "text-rose-600";
+                    }
+
+                    // আপনার বিদ্যমান ID গুলো ধরে রিয়েল-টাইমে UI আপডেট করা (কোনো HTML চেঞ্জ ছাড়া)
+                    const statusCard = document.getElementById('status-card');
+                    const currentStatus = document.getElementById('current-status');
+                    const statusTime = document.getElementById('status-time');
+
+                    if (statusCard) {
+                        // কার্ডের ব্যাকগ্রাউন্ড ও বর্ডার ডাইনামিকালি চেঞ্জ হবে
+                        statusCard.className = `p-6 md:p-8 rounded-3xl shadow-lg text-center border transition-all duration-500 mb-6 ${cardBgClass}`;
+                    }
+                    if (currentStatus) {
+                        // Loading... লেখার জায়গায় "অনলাইন" বা "লোডশেডিং" বসবে
+                        currentStatus.innerText = displayStatus;
+                        currentStatus.className = `text-5xl md:text-6xl font-black uppercase tracking-tighter ${statusColorClass}`;
+                    }
+                    if (statusTime) {
+                        // সর্বশেষ পিং বা টাইমস্ট্যাম্প আপডেট হবে
+                        statusTime.innerText = `সর্বশেষ আপডেট: ${areaData.last_ping} | এলাকা: ${areaData.name}`;
+                    }
+
+                    // ২. এই সুনির্দিষ্ট এলাকার ওপর ভিত্তি করে আপনার চার্ট এবং টেবিল রেন্ডার করা
+                    updateClientChartsAndTable(savedAreaId);
+                });
+            }
+
+            // ২. চার্ট ও টেবিলের জন্য নির্দিষ্ট এলাকার হিস্ট্রি ফিল্টার করা
+            function updateClientChartsAndTable(areaId) {
+                console.log("Filtering history logs for:", areaId);
+                // (এখানে আপনার বিদ্যমান চার্ট ড্র করার এবং টেবিল লুপের কোডটি বসে যাবে)
+            }
+
+            // ৩. আমাদের আগের goToDashboard ফাংশনটি মডিফাই করে এই লোড ফাংশনটি জুড়ে দেওয়া
+            // (আপনার স্ক্রিপ্টের আগের পুরনো goToDashboard ফাংশনটি মুছে এটি দিয়ে রিপ্লেস করবেন)
+            function goToDashboard() {
+                document.getElementById('onboarding-screen').classList.add('hidden');
+                document.getElementById('main-dashboard').classList.remove('hidden');
+                
+                // ড্যাশবোর্ডে আসা মাত্রই গ্রাহকের ডাটা ফিল্টারিং ইঞ্জিন চালু করা
+                loadClientDashboard();
+            }
 
 
 

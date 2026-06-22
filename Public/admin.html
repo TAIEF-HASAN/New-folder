@@ -1,246 +1,366 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KPM - Admin Panel</title>
-    
-    <!-- 🟢 Tailwind CSS CDN (সঠিক লিঙ্ক) -->
-    <script src="https://cdn.tailwindcss.com"></script>
-     
-    <!-- Firebase SDK (নিখুঁত আছে) -->
-    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>KPM - Admin Panel</title>
+        
+        <!-- 🟢 Tailwind CSS CDN (সঠিক লিঙ্ক) -->
+        <script src="https://cdn.tailwindcss.com"></script>
+        
+        <!-- Firebase SDK (নিখুঁত আছে) -->
+        <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-database-compat.js"></script>
+    </head>
 
-<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center font-sans">
+    <body class="bg-slate-900 text-white min-h-screen p-4 md:p-8 font-sans flex flex-col items-center justify-center">
 
-    <!-- 🔒 1. Login Section (পাসওয়ার্ড গেট) -->
-    <div id="login-section" class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-slate-700">
+    <!-- ========================================== -->
+    <!-- 🔒 ১. ইউনিফাইড সিকিউর লগইন ফর্ম (একমাত্র লগইন স্ক্রিন) -->
+    <!-- ========================================== -->
+    <div id="admin-login-card" class="bg-slate-800 p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-700">
         <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-amber-500 mb-2">⚡ KPM Admin</h1>
-            <p class="text-slate-400 text-sm">জরুরি নোটিশ বোর্ড আপডেট প্যানেল</p>
+            <h1 class="text-3xl font-black text-amber-500 mb-2">🔋 KPM Admin Hub</h1>
+            <p class="text-slate-400 text-sm font-medium">কালকিনি জোনাল অফিস কেন্দ্রীয় কন্ট্রোল প্যানেল</p>
         </div>
         <div class="space-y-4">
             <div>
-                <label class="block text-sm font-medium text-slate-300 mb-1">অ্যাডমিন পাসওয়ার্ড</label>
-                <input type="password" id="admin-password" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition" placeholder="••••••••">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">ইউজারনেম</label>
+                <input type="text" id="admin-user" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition font-bold" placeholder="অফিস আইডি">
             </div>
-            <p id="login-error" class="text-red-500 text-sm hidden">❌ ভুল পাসওয়ার্ড! আবার চেষ্টা করুন।</p>
-            <button onclick="verifyPassword()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-amber-500/20">লগইন করুন</button>
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">পাসওয়ার্ড</label>
+                <input type="password" id="admin-pass" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition" placeholder="••••••••">
+            </div>
+            <button onclick="handleAdminLogin()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-amber-500/20 mt-2">লগইন করুন</button>
         </div>
     </div>
 
-    <!-- 📝 2. Control Panel Section (লগইন সফল হলে এটি দেখাবে) -->
-    <div id="panel-section" class="bg-slate-800 p-8 rounded-2xl shadow-2xl w-full max-w-lg border border-slate-700 hidden">
-        <div class="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-            <div>
-                <h1 class="text-2xl font-bold text-amber-500">📢 Notice Control</h1>
-                <p class="text-slate-400 text-xs">সরাসরি ড্যাশবোর্ডে নোটিশ পাবলিশ করুন</p>
-            </div>
-            <button onclick="logout()" class="text-xs bg-slate-700 hover:bg-red-600 px-3 py-1.5 rounded-lg transition">লগআউট</button>
-        </div>
-
-        <div class="space-y-5">
-            <!-- নোটিশের স্ট্যাটাস টগল -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-1">নোটিশ বোর্ড স্ট্যাটাস</label>
-                <select id="notice-status" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition">
-                    <option value="Active">🔴 Active (ড্যাশবোর্ডে দেখাবে)</option>
-                    <option value="Inactive">⚪ Inactive (বন্ধ থাকবে)</option>
-                </select>
-            </div>
-
-            <!-- নোটিশ টেক্সট এরিয়া -->
-            <div>
-                <label class="block text-sm font-medium text-slate-300 mb-1">জরুরি নোটিশের বিবরণ</label>
-                <textarea id="notice-text" rows="4" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition" placeholder="এখানে নোটিশের লেখাটি লিখুন..."></textarea>
-            </div>
-
-            <!-- সাকসেস/এরর মেসেজ -->
-            <p id="action-status" class="text-sm font-semibold text-center hidden"></p>
-
-            <!-- সাবমিট বাটন -->
-            <button onclick="publishNotice()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-500/20">🚀 Publish Notice</button>
-        </div>
-    </div>
-
-    <!-- 🔒 সিকিউর অ্যাডমিন কন্ট্রোল প্যানেল -->
-    <div id="admin-master-hub" class="p-6 bg-white rounded-3xl shadow-xl max-w-lg mx-auto mt-6 hidden">
-        <h2 class="text-xl font-black text-gray-800 mb-6 flex items-center gap-2">⚙️ KPM সেন্ট্রাল কন্ট্রোল প্যানেল</h2>
+    <!-- ========================================== -->
+    <!-- 💻 ২. মেইন সেন্ট্রাল ড্যাশবোর্ড কন্টেইনার (লগইনের পর খুলবে) -->
+    <!-- ========================================== -->
+    <div id="main-admin-dashboard" class="w-full max-w-2xl space-y-6 hidden">
         
-        <!-- সেকশন এ: নতুন এলাকা যুক্ত করুন (যা গ্রাহকের ২-কলাম UI তে অটো যাবে) -->
-        <div class="border-b border-gray-100 pb-6 mb-6">
-            <h3 class="text-sm font-black text-blue-600 uppercase tracking-wider mb-3">📍 নতুন এলাকা তৈরি করুন</h3>
-            <div class="space-y-3">
-                <input type="text" id="new-area-name" placeholder="এলাকার নাম লিখুন (উদা: সাহেবরামপুর)" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-blue-500">
-                <input type="text" id="new-area-feeder" placeholder="ফিডার আইডি লিখুন (উদা: feeder_sahebrampur)" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-blue-500">
-                <button onclick="createNewAreaViaUI()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95">এলাকা লাইভ করুন 🚀</button>
+        <!-- টপ বার (লগআউট বাটনসহ) -->
+        <div class="flex justify-between items-center bg-slate-800 p-4 rounded-2xl border border-slate-700">
+            <div>
+                <h1 class="text-xl font-black text-amber-500">⚙️ Central Controller</h1>
+                <p class="text-slate-400 text-xs">সবগুলো মডিউল এখন আপনার নিয়ন্ত্রণে</p>
+            </div>
+            <button onclick="handleLogout()" class="text-xs font-bold bg-slate-700 hover:bg-red-600 px-4 py-2 rounded-xl transition">লগআউট</button>
+        </div>
+
+        <!-- 📡 মডিউল এ: লাইভ ফল্ট ও লোডশেডিং ডায়াগনস্টিক ম্যাপ -->
+        <div id="admin-fault-monitor" class="p-6 bg-slate-950 text-white rounded-3xl shadow-2xl border border-slate-800">
+            <div class="flex justify-between items-center border-b border-gray-800 pb-4 mb-4">
+                <h2 class="text-sm font-black tracking-wide text-rose-500 animate-pulse">📡 LIVE FAULT DIAGNOSTICS</h2>
+                <button id="master-switch-btn" onclick="toggleMasterSwitch()" class="px-3 py-1 bg-green-600 text-xs font-bold rounded-lg transition-all">মাস্টার ফিডার: ON</button>
+            </div>
+            <div id="admin-alert-zone" class="p-4 rounded-xl bg-slate-900 border border-gray-800 text-center mb-4 transition-all duration-300 font-black text-sm">
+                <p class="text-gray-400 font-medium">সিস্টেম স্ক্যান করা হচ্ছে...</p>
+            </div>
+            <div id="admin-live-tree" class="space-y-3 max-h-[25vh] overflow-y-auto pr-1">
+                <!-- জাভাস্ক্রিপ্ট দিয়ে সাব-নোড রেন্ডার হবে -->
             </div>
         </div>
 
-        <!-- সেকশন বি: এলাকার ভেতর সাব-নোড যুক্ত করুন (যা শুধু অ্যাডমিন প্যানেলে থাকবে) -->
-        <div>
-            <h3 class="text-sm font-black text-rose-600 uppercase tracking-wider mb-3">🛠️ এলাকার ভেতর ফল্ট সাব-নোড যুক্ত করুন</h3>
-            <div class="space-y-3">
-                <select id="admin-area-dropdown" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-rose-500">
-                    <!-- ডাইনামিকালি মেইন এলাকাগুলো এখানে লোড হবে -->
-                </select>
-                <input type="text" id="new-subnode-name" placeholder="সাব-নোডের স্থান (উদা: খাসেরহাট স্কুল রোড ২.১)" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-rose-500">
-                <input type="number" id="new-subnode-seq" placeholder="সিকুয়েন্স ক্রম (উদা: 1, 2, 3)" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-rose-500">
-                <button onclick="addNewSubNodeViaUI()" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95">ফল্ট নোড যুক্ত করুন 🎯</button>
+        <!-- 📢 মডিউল বি: জরুরি নোটিশ কন্ট্রোল বোর্ড -->
+        <div class="bg-slate-800 p-6 rounded-3xl shadow-xl border border-slate-700">
+            <h2 class="text-md font-black text-amber-500 mb-4 flex items-center gap-1">📢 ইমার্জেন্সি নোটিশ বোর্ড</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">নোটিশ স্ট্যাটাস টগল:</label>
+                    <select id="notice-status" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-amber-500 transition">
+                        <option value="Active">🔴 Active (গ্রাহক ড্যাশবোর্ডে দেখাবে)</option>
+                        <option value="Inactive">⚪ Inactive (বন্ধ থাকবে)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">জরুরি নোটিশের বিবরণ:</label>
+                    <textarea id="notice-text" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-amber-500 transition text-sm" placeholder="গ্রাহকদের জন্য নোটিশ লিখুন..."></textarea>
+                </div>
+                <p id="action-status" class="text-xs font-bold text-center hidden"></p>
+                <button onclick="publishNotice()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-emerald-500/20">Publish Notice 🚀</button>
             </div>
         </div>
-    </div>
 
-
-    <script>
-        // 🔒 আপনার মেইন index.html থেকে Firebase Config হুবহু কপি করে এখানে বসান
-        const firebaseConfig = {
-                apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
-                authDomain: "kalkinipowermonitor.firebaseapp.com",
-                databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
-                projectId: "kalkinipowermonitor",
-                storageBucket: "kalkinipowermonitor.firebasestorage.app",
-                messagingSenderId: "119477481190",
-                appId: "1:119477481190:web:7f3404fcf0b87db388d527"
-            };
-        
-        // ফায়ারবেস ইনিশিয়ালাইজেশন
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        // 🤫 আপনার সিক্রেট অ্যাডমিন পাসওয়ার্ড (এটি আপনার ইচ্ছামতো পরিবর্তন করতে পারেন)
-        const SECRET_PASSWORD = "kalkini_power_admin";
-
-        // পাসওয়ার্ড ভেরিফিকেশন ফাংশন
-        function verifyPassword() {
-            const input = document.getElementById('admin-password').value;
-            const errorMsg = document.getElementById('login-error');
+        <!-- 🛠️ মডিউল সি: সেন্ট্রাল কন্ট্রোল প্যানেল (মাস্টার হাব - নোড ইনপুট) -->
+        <div class="p-6 bg-white text-gray-800 rounded-3xl shadow-xl">
+            <h2 class="text-lg font-black text-gray-800 mb-4 flex items-center gap-2">🛠️ KPM এরিয়া ও সাব-নোড ম্যানেজার</h2>
             
-            if (input === SECRET_PASSWORD) {
-                document.getElementById('login-section').classList.add('hidden');
-                document.getElementById('panel-section').classList.remove('hidden');
-                errorMsg.classList.add('hidden');
-                loadCurrentNotice(); // বর্তমান নোটিশ লোড করা
-            } else {
-                errorMsg.classList.remove('hidden');
+            <!-- নতুন এলাকা যোগ -->
+            <div class="border-b border-gray-100 pb-4 mb-4">
+                <h3 class="text-xs font-black text-blue-600 uppercase tracking-wider mb-2">📍 নতুন এলাকা তৈরি করুন (গ্রাহক UI এর জন্য)</h3>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="new-area-name" placeholder="এলাকার নাম (উদা: খাসেরহাট)" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
+                    <input type="text" id="new-area-feeder" placeholder="ফিডার আইডি" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
+                    <button onclick="createNewAreaViaUI()" class="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition active:scale-95">তৈরি করুন</button>
+                </div>
+            </div>
+
+            <!-- সাব-নোড যোগ -->
+            <div>
+                <h3 class="text-xs font-black text-rose-600 uppercase tracking-wider mb-2">🎯 এলাকার ভেতর ফল্ট সাব-নোড যুক্ত করুন (অফিস মনিটরের জন্য)</h3>
+                <div class="space-y-3">
+                    <select id="admin-area-dropdown" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm text-gray-700 outline-none"></select>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="new-subnode-name" placeholder="সাব-নোডের নাম (উদা: স্কুল রোড ২.১)" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
+                        <input type="number" id="new-subnode-seq" placeholder="সিকুয়েন্স (১, ২...)" class="w-32 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
+                        <button onclick="addNewSubNodeViaUI()" class="px-4 py-3 bg-rose-600 text-white font-bold rounded-xl text-sm transition active:scale-95">নোড যুক্ত করুন</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+        <script>
+    // ==========================================
+    // 📡 ১. ফায়ারবেস কনফিগারেশন ও ইনিশিয়ালাইজেশন
+    // ==========================================
+    // 🔒 আপনার মেইন index.html থেকে Firebase Config হুবহু কপি করে এখানে বসান
+            const firebaseConfig = {
+                    apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
+                    authDomain: "kalkinipowermonitor.firebaseapp.com",
+                    databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
+                    projectId: "kalkinipowermonitor",
+                    storageBucket: "kalkinipowermonitor.firebasestorage.app",
+                    messagingSenderId: "119477481190",
+                    appId: "1:119477481190:web:7f3404fcf0b87db388d527"
+                };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // গ্লোবাল স্টেট ভ্যারিয়েবল
+    let currentMasterSwitch = "ON";
+
+    // ==========================================
+    // 🔒 ২. সেন্ট্রাল গেটওয়ে (লগইন ও লগআউট সিস্টেম)
+    // ==========================================
+    function handleAdminLogin() {
+        const user = document.getElementById('admin-user').value.trim();
+        const pass = document.getElementById('admin-pass').value.trim();
+
+        // সুরক্ষিত ক্রেডেনশিয়াল চেক
+        if (user === "admin" && pass === "kpm2026") {
+            document.getElementById('admin-login-card').classList.add('hidden');
+            document.getElementById('main-admin-dashboard').classList.remove('hidden');
+            
+            // লগইন সফল হলে ব্যাকগ্রাউন্ডে সব ডেটা ইঞ্জিন সচল করা
+            loadCurrentNotice();
+            startAdminFaultEngine();
+        } else {
+            alert("ভুল ইউজারনেম বা পাসওয়ার্ড! দয়া করে সঠিক তথ্য দিন।");
+        }
+    }
+
+    function handleLogout() {
+        document.getElementById('admin-user').value = '';
+        document.getElementById('admin-pass').value = '';
+        document.getElementById('main-admin-dashboard').classList.add('hidden');
+        document.getElementById('admin-login-card').classList.remove('hidden');
+    }
+
+    // ==========================================
+    // ⚡ ৩. মাস্টার ফিডার সুইচ (লোডশেডিং বনাম ব্রেকার ট্রিপ)
+    // ==========================================
+    function toggleMasterSwitch() {
+        currentMasterSwitch = (currentMasterSwitch === "ON") ? "OFF" : "ON";
+        const btn = document.getElementById('master-switch-btn');
+        if (currentMasterSwitch === "ON") {
+            btn.innerText = "মাস্টার ফিডার: ON";
+            btn.className = "px-3 py-1 bg-green-600 text-xs font-bold rounded-lg";
+        } else {
+            btn.innerText = "মাস্টার ফিডার: OFF (LOAD-SHEDDING)";
+            btn.className = "px-3 py-1 bg-amber-600 text-xs font-bold rounded-lg";
+        }
+        startAdminFaultEngine(); // সুইচ পরিবর্তন হলে লাইভ ম্যাপ রি-স্ক্যান করা
+    }
+
+    // ==========================================
+    // 📢 ৪. ইমার্জেন্সি নোটিশ বোর্ড ব্যাকএন্ড ইঞ্জিন
+    // ==========================================
+    function loadCurrentNotice() {
+        db.ref('emergency_notice').once('value', (snap) => {
+            const data = snap.val();
+            if (data) {
+                document.getElementById('notice-status').value = data.status || 'Inactive';
+                document.getElementById('notice-text').value = data.text || '';
             }
+        });
+    }
+
+    function publishNotice() {
+        const status = document.getElementById('notice-status').value;
+        const text = document.getElementById('notice-text').value.trim();
+        const statusLabel = document.getElementById('action-status');
+
+        if (!text && status === 'Active') {
+            statusLabel.className = "text-red-400 text-xs font-bold text-center";
+            statusLabel.innerText = "দয়া করে নোটিশে কিছু লিখুন!";
+            statusLabel.classList.remove('hidden');
+            return;
         }
 
-        // ডেটাবেজ থেকে বর্তমান নোটিশ এনে বক্সে দেখানো
-        function loadCurrentNotice() {
-            db.ref('emergency_notice').once('value', (snap) => {
-                const data = snap.val();
-                if (data) {
-                    document.getElementById('notice-status').value = data.status || 'Inactive';
-                    document.getElementById('notice-text').value = data.text || '';
-                }
+        db.ref('emergency_notice').set({
+            status: status,
+            text: text,
+            timestamp: new Date().toLocaleString("en-US", {timeZone: "Asia/Dhaka"})
+        }).then(() => {
+            statusLabel.className = "text-emerald-400 text-xs font-bold text-center";
+            statusLabel.innerText = "নোটিশ সফলভাবে লাইভ হয়েছে!";
+            statusLabel.classList.remove('hidden');
+            setTimeout(() => statusLabel.classList.add('hidden'), 3000);
+        }).catch((err) => {
+            statusLabel.className = "text-red-400 text-xs font-bold text-center";
+            statusLabel.innerText = "ত্রুটি: " + err.message;
+            statusLabel.classList.remove('hidden');
+        });
+    }
+
+    // ==========================================
+    // 🛠️ ৫. সেন্ট্রাল এরিয়া ও সাব-নোড ম্যানেজার (UI ইনপুট)
+    // ==========================================
+    db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
+        const areas = snapshot.val();
+        const areaDropdown = document.getElementById('admin-area-dropdown');
+        if (!areaDropdown || !areas) return;
+        areaDropdown.innerHTML = '';
+        Object.keys(areas).forEach((areaId) => {
+            areaDropdown.innerHTML += `<option value="${areaId}">${areas[areaId].name}</option>`;
+        });
+    });
+
+    // ২. UI থেকে মেইন এলাকা তৈরির সাথে সাথে রুট 'feeders' নোডকেও ডাইনামিকালি আপডেট করা
+    function createNewAreaViaUI() {
+        const areaName = document.getElementById('new-area-name').value.trim();
+        const feederId = document.getElementById('new-area-feeder').value.trim();
+        if (!areaName || !feederId) {
+            alert("সবগুলো তথ্য সঠিকভাবে পূরণ করুন!");
+            return;
+        }
+        
+        // একটি ইউনিক এরিয়া আইডি জেনারেট করা
+        const customAreaId = `area_${Date.now().toString().slice(-4)}`;
+
+        // স্টেপ ১: 'areas' নোডের অধীনে নতুন এলাকাটি সেভ করা
+        db.ref(`kalkini_power_monitor/areas/${customAreaId}`).set({
+            name: areaName,
+            feeder_id: feederId,
+            status: "Online",
+            last_ping: new Date().toLocaleString()
+        }).then(() => {
+            
+            // 🚀 ম্যাজিক লিংক: 'feeders' নোডের অধীনেও ওই নতুন ফিডার আইডি এবং নাম অটোমেটিক তৈরি করা
+            // এর ফলে আপনার সাব-স্টেশনের ৯টি ফিডারের নাম এবং বাটন নিজে নিজেই এখানে তৈরি হয়ে যাবে!
+            db.ref(`kalkini_power_monitor/feeders/${feederId}`).set({
+                name: `${areaName} ফিডার`,
+                status: "Online"
             });
+
+            alert(`🎉 এলাকা "${areaName}" এবং ফিডার "${feederId}" সফলভাবে যুক্ত হয়েছে!`);
+            document.getElementById('new-area-name').value = '';
+            document.getElementById('new-area-feeder').value = '';
+        }).catch(err => alert("সার্ভার ত্রুটি, আবার চেষ্টা করুন!"));
+    }
+
+
+    function addNewSubNodeViaUI() {
+        const selectedAreaId = document.getElementById('admin-area-dropdown').value;
+        const subNodeName = document.getElementById('new-subnode-name').value.trim();
+        const subNodeSeq = parseInt(document.getElementById('new-subnode-seq').value);
+        if (!subNodeName || isNaN(subNodeSeq)) {
+            alert("সবগুলো তথ্য সঠিকভাবে পূরণ করুন!");
+            return;
         }
+        const newNodeId = `node_${subNodeSeq}_${Date.now().toString().slice(-3)}`;
+        db.ref(`kalkini_power_monitor/areas/${selectedAreaId}/nodes/${newNodeId}`).set({
+            name: subNodeName,
+            status: "Online",
+            sequence: subNodeSeq,
+            last_ping: new Date().toLocaleString()
+        }).then(() => {
+            alert(`ফল্ট সাব-নোড "${subNodeName}" যুক্ত হয়েছে! এটি শুধু অফিস ড্যাশবোর্ডে দৃশ্যমান হবে।`);
+            document.getElementById('new-subnode-name').value = '';
+            document.getElementById('new-subnode-seq').value = '';
+        }).catch(err => alert("সার্ভার ত্রুটি!"));
+    }
 
-        // ফায়ারবেসে নোটিশ পাবলিশ করার ফাংশন
-        function publishNotice() {
-            const status = document.getElementById('notice-status').value;
-            const text = document.getElementById('notice-text').value.trim();
-            const statusLabel = document.getElementById('action-status');
-
-            if (!text && status === 'Active') {
-                statusLabel.className = "text-red-400 text-sm font-semibold text-center";
-                statusLabel.innerText = "⚠️ দয়া করে নোটিশের বিবরণ লিখুন!";
-                statusLabel.classList.remove('hidden');
-                return;
-            }
-
-            // ফায়ারবেসে ডেটা পুশ লজিক
-            db.ref('emergency_notice').set({
-                status: status,
-                text: text,
-                timestamp: new Date().toLocaleString("en-US", {timeZone: "Asia/Dhaka"})
-            })
-            .then(() => {
-                statusLabel.className = "text-emerald-400 text-sm font-semibold text-center";
-                statusLabel.innerText = "✅ নোটিশ সফলভাবে ড্যাশবোর্ডে লাইভ হয়েছে!";
-                statusLabel.classList.remove('hidden');
-                setTimeout(() => statusLabel.classList.add('hidden'), 3000);
-            })
-            .catch((err) => {
-                statusLabel.className = "text-red-400 text-sm font-semibold text-center";
-                statusLabel.innerText = "❌ এরর: " + err.message;
-                statusLabel.classList.remove('hidden');
-            });
-        }
-
-        // লগআউট ফাংশন
-        function logout() {
-            document.getElementById('admin-password').value = '';
-            document.getElementById('panel-section').classList.add('hidden');
-            document.getElementById('login-section').classList.remove('hidden');
-        }
-
-        // ১. অ্যাডমিন ড্রপডাউনে মেইন এলাকাগুলো ফায়ারবেস থেকে স্বয়ংক্রিয়ভাবে লোড করা
+    // ==========================================
+    // 📡 ৬. ইন্টেলিজেন্ট ফল্ট ডিরেকশন ইঞ্জিন (The Core Loop)
+    // ==========================================
+    function startAdminFaultEngine() {
         db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
             const areas = snapshot.val();
-            const areaDropdown = document.getElementById('admin-area-dropdown');
-            if (!areaDropdown || !areas) return;
-
-            areaDropdown.innerHTML = ''; // আগের অপশন পরিষ্কার করা
+            const alertZone = document.getElementById('admin-alert-zone');
+            const liveTree = document.getElementById('admin-live-tree');
+            if (!alertZone || !liveTree || !areas) return;
+            
+            liveTree.innerHTML = ''; // পূর্বের ভিউ পরিষ্কার করা
+            let faultDetected = false;
+            let faultMessage = "🟢 কালকিনির সকল ফিডার এবং সাব-সেকশন স্বাভাবিক আছে।";
+            let alertBgClass = "bg-green-950 border-green-800 text-green-400";
+            
+            // মেইন এলাকার লুপ
             Object.keys(areas).forEach((areaId) => {
-                areaDropdown.innerHTML += `<option value="${areaId}">${areas[areaId].name}</option>`;
+                const area = areas[areaId];
+                liveTree.innerHTML += `<div class="text-xs font-bold text-gray-500 border-b border-gray-800 pb-1 mt-2">📍 এলাকা: ${area.name}</div>`;
+                
+                // সাব-নোডের লুপ ও সিকুয়েন্স শর্টিং
+                if (area.nodes) {
+                    const nodesList = Object.keys(area.nodes).map(key => area.nodes[key]);
+                    nodesList.sort((a, b) => a.sequence - b.sequence);
+                    
+                    for (let i = 0; i < nodesList.length; i++) {
+                        let currentNode = nodesList[i];
+                        let nodeStatusIcon = currentNode.status === "Online" ? "🟢" : "🔴";
+                        
+                        // এডমিন ম্যাপে সাব-নোডের পরিস্থিতি রেন্ডার করা
+                        liveTree.innerHTML += `
+                            <div class="flex justify-between items-center text-sm pl-4 py-1 bg-slate-800 my-1 rounded-xl border border-slate-700">
+                                <span>${currentNode.sequence}.0 ${currentNode.name}</span>
+                                <span>${nodeStatusIcon} <span class="text-xs text-gray-500">${currentNode.status}</span></span>
+                            </div>
+                        `;
+                        
+                        // সিকুয়েন্স ব্রেক পয়েন্ট (ফল্ট জোন) অ্যালগরিদম
+                        if (i < nodesList.length - 1) {
+                            let nextNode = nodesList[i + 1];
+                            if (currentNode.status === "Online" && nextNode.status === "Offline") {
+                                faultDetected = true;
+                                faultMessage = `🚨 CRITICAL FAULT: ${area.name} এলাকার "${currentNode.name}" এবং "${nextNode.name}" এর মধ্যবর্তী লাইনে ফল্ট (তার ছেঁড়া/ফিউজ পোড়া) হয়েছে!`;
+                                alertBgClass = "bg-red-950 border-red-800 text-red-400 animate-bounce";
+                            }
+                        }
+                    }
+
+                                        // এজিএম স্যারের চ্যালেঞ্জ: অল নোড অফলাইন অ্যানালিটিক্স
+                    const allOffline = nodesList.every(node => node.status === "Offline");
+                    if (allOffline && !faultDetected) {
+                        if (currentMasterSwitch === "OFF") {
+                            faultMessage = `⚠️ INFO: ${area.name} ফিডারে বর্তমানে অফিশিয়াল লোডশেডিং চলছে।`;
+                            alertBgClass = "bg-amber-950 border-amber-800 text-amber-400";
+                        } else {
+                            // মাস্টার ফিডার অন কিন্তু সব নোড অফলাইন = মেইন ব্রেকার ট্রিপ ফল্ট!
+                            faultMessage = `🚨 BREAKING ALERT: ${area.name} ফিডারের মেইন ব্রেকার ট্রিপ করেছে! এটি লোডশেডিং নয়, লাইনে মেজর ফল্ট হয়েছে!`;
+                            alertBgClass = "bg-red-950 border-red-500 border-2 text-red-400 animate-pulse";
+                            if (nodesList.length > 0) {
+                                faultMessage += ` (সম্ভাব্য জোন: ${nodesList[0].name})`;
+                            }
+                        }
+                    }
+                }
             });
+            
+            // সাইরেন বক্স ইউআই আপডেট
+            alertZone.className = `p-4 rounded-xl text-sm font-black text-center mb-4 transition-all duration-300 ${alertBgClass}`;
+            alertZone.innerText = faultMessage;
         });
+    }
+</script>
+                    
 
-        // ২. UI থেকে সরাসরি নতুন মেইন এলাকা তৈরি করা (যা গ্রাহকের ২-কলাম কার্ডে অটো যোগ হবে)
-        function createNewAreaViaUI() {
-            const areaName = document.getElementById('new-area-name').value.trim();
-            const feederId = document.getElementById('new-area-feeder').value.trim();
-
-            if (!areaName || !feederId) {
-                alert("দয়া করে এলাকার নাম এবং ফিডার আইডি দুটোই পূরণ করুন!");
-                return;
-            }
-
-            // একটি ইউনিক এরিয়া আইডি জেনারেট করা
-            const customAreaId = `area_${Date.now().toString().slice(-4)}`;
-
-            db.ref(`kalkini_power_monitor/areas/${customAreaId}`).set({
-                name: areaName,
-                feeder_id: feederId,
-                status: "Online", // নতুন এলাকা ডিফল্টভাবে অনলাইন থাকবে
-                last_ping: new Date().toLocaleString()
-            }).then(() => {
-                alert(`🎉 সফলভাবে মেইন এলাকা "${areaName}" যুক্ত হয়েছে! এটি এখন গ্রাহকদের ২-কলাম স্ক্রিনে লাইভ।`);
-                document.getElementById('new-area-name').value = '';
-                document.getElementById('new-area-feeder').value = '';
-            }).catch(err => alert("সার্ভার ত্রুটি, আবার চেষ্টা করুন।"));
-        }
-
-        // ৩. মেইন এলাকার ভেতরে সাব-নোড (২.১, ২.২) যুক্ত করা (যা শুধু বিদ্যুৎ অফিসের ফল্ট ট্র্যাকিংয়ে দেখাবে)
-        function addNewSubNodeViaUI() {
-            const selectedAreaId = document.getElementById('admin-area-dropdown').value;
-            const subNodeName = document.getElementById('new-subnode-name').value.trim();
-            const subNodeSeq = parseInt(document.getElementById('new-subnode-seq').value);
-
-            if (!subNodeName || isNaN(subNodeSeq)) {
-                alert("দয়া করে সাব-নোডের নাম এবং সঠিক ক্রম নম্বরটি লিখুন!");
-                return;
-            }
-
-            const newNodeId = `node_${subNodeSeq}_${Date.now().toString().slice(-3)}`;
-
-            // ফায়ারবেসের নির্দিষ্ট এরিয়ার ভেতরে 'nodes' সাব-কালেকশনে ডেটা রাইট করা
-            db.ref(`kalkini_power_monitor/areas/${selectedAreaId}/nodes/${newNodeId}`).set({
-                name: subNodeName,
-                status: "Online",
-                sequence: subNodeSeq,
-                last_ping: new Date().toLocaleString()
-            }).then(() => {
-                alert(`🎯 সফলভাবে ফল্ট সাব-নোড "${subNodeName}" যুক্ত হয়েছে! এটি শুধু অ্যাডমিন প্যানেলে দৃশ্যমান হবে।`);
-                document.getElementById('new-subnode-name').value = '';
-                document.getElementById('new-subnode-seq').value = '';
-            }).catch(err => alert("সার্ভার ত্রুটি, আবার চেষ্টা করুন।"));
-        }
-
-    </script>
-</body>
+    </body>
 </html>
