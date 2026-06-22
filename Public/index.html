@@ -284,15 +284,7 @@
             goToDashboard();
         }
 
-        // ৪. ওয়ান-টাইম অনবোর্ডিং স্ক্রিন লুকিয়ে মেইন ড্যাশবোর্ড ওপেন করা
-        function goToDashboard() {
-            document.getElementById('onboarding-screen').classList.add('hidden');
-            document.getElementById('main-dashboard').classList.remove('hidden');
-            console.log("User Area Locked:", localStorage.getItem('kpm_user_area'));
-            // এখানে আপনার বিদ্যমান চার্ট ও টেবিল লোড করার ফাংশনটি কল হবে (যা আমরা মডিউল ৩-এ করব)
-        }
-
-        // ৫. ব্যবহারকারী আগে থেকেই এরিয়া সেভ করে রেখেছে কি না যাচাই করা (Auto-Redirect)
+        // 4. ব্যবহারকারী আগে থেকেই এরিয়া সেভ করে রেখেছে কি না যাচাই করা (Auto-Redirect)
         function checkExistingUser() {
             const savedArea = localStorage.getItem('kpm_user_area');
             if (savedArea) {
@@ -677,6 +669,70 @@
                 container.classList.add('hidden'); // নোটিশ বক্সটি সম্পূর্ণ হাইড বা বন্ধ থাকবে
             }
         });
+
+        // ১. মডিউল ৩-এর মূল ফাংশন: গ্রাহকের নিজস্ব এলাকার ডেটা ট্র্যাক করা
+        function loadClientDashboard() {
+            const savedAreaId = localStorage.getItem('kpm_user_area');
+            if (!savedAreaId) return;
+
+            console.log("Loading Dashboard for Area:", savedAreaId);
+
+            // ফায়ারবেস থেকে শুধুমাত্র এই নির্দিষ্ট এলাকার লাইভ ডেটা রিড করা
+            db.ref(`kalkini_power_monitor/areas/${savedAreaId}`).on('value', (snapshot) => {
+                const areaData = snapshot.val();
+                if (!areaData) return;
+
+                // ৫.১ টাস্ক: গ্রাহকের স্ক্রিনের জন্য ডেটা মাস্কিং (Data Masking)
+                let displayStatus = "অনলাইন";
+                let cardBgClass = "bg-gradient-to-br from-green-50 to-emerald-100 border-emerald-200 text-emerald-800 shadow-emerald-100";
+                let statusColorClass = "text-emerald-600";
+
+                if (areaData.status === "Offline") {
+                    displayStatus = "লোডশেডিং";
+                    cardBgClass = "bg-gradient-to-br from-red-50 to-rose-100 border-rose-200 text-rose-800 shadow-rose-100";
+                    statusColorClass = "text-rose-600";
+                }
+
+                // আপনার বিদ্যমান ID গুলো ধরে রিয়েল-টাইমে UI আপডেট করা (কোনো HTML চেঞ্জ ছাড়া)
+                const statusCard = document.getElementById('status-card');
+                const currentStatus = document.getElementById('current-status');
+                const statusTime = document.getElementById('status-time');
+
+                if (statusCard) {
+                    // কার্ডের ব্যাকগ্রাউন্ড ও বর্ডার ডাইনামিকালি চেঞ্জ হবে
+                    statusCard.className = `p-6 md:p-8 rounded-3xl shadow-lg text-center border transition-all duration-500 mb-6 ${cardBgClass}`;
+                }
+                if (currentStatus) {
+                    // Loading... লেখার জায়গায় "অনলাইন" বা "লোডশেডিং" বসবে
+                    currentStatus.innerText = displayStatus;
+                    currentStatus.className = `text-5xl md:text-6xl font-black uppercase tracking-tighter ${statusColorClass}`;
+                }
+                if (statusTime) {
+                    // সর্বশেষ পিং বা টাইমস্ট্যাম্প আপডেট হবে
+                    statusTime.innerText = `সর্বশেষ আপডেট: ${areaData.last_ping} | এলাকা: ${areaData.name}`;
+                }
+
+                // ২. এই সুনির্দিষ্ট এলাকার ওপর ভিত্তি করে আপনার চার্ট এবং টেবিল রেন্ডার করা
+                updateClientChartsAndTable(savedAreaId);
+            });
+        }
+
+        // ২. চার্ট ও টেবিলের জন্য নির্দিষ্ট এলাকার হিস্ট্রি ফিল্টার করা
+        function updateClientChartsAndTable(areaId) {
+            console.log("Filtering history logs for:", areaId);
+            // (এখানে আপনার বিদ্যমান চার্ট ড্র করার এবং টেবিল লুপের কোডটি বসে যাবে)
+        }
+
+        // ৩. আমাদের আগের goToDashboard ফাংশনটি মডিফাই করে এই লোড ফাংশনটি জুড়ে দেওয়া
+        // (আপনার স্ক্রিপ্টের আগের পুরনো goToDashboard ফাংশনটি মুছে এটি দিয়ে রিপ্লেস করবেন)
+        function goToDashboard() {
+            document.getElementById('onboarding-screen').classList.add('hidden');
+            document.getElementById('main-dashboard').classList.remove('hidden');
+            
+            // ড্যাশবোর্ডে আসা মাত্রই গ্রাহকের ডাটা ফিল্টারিং ইঞ্জিন চালু করা
+            loadClientDashboard();
+        }
+
 
 
 

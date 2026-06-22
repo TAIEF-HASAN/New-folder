@@ -65,6 +65,35 @@
         </div>
     </div>
 
+    <!-- 🔒 সিকিউর অ্যাডমিন কন্ট্রোল প্যানেল -->
+    <div id="admin-master-hub" class="p-6 bg-white rounded-3xl shadow-xl max-w-lg mx-auto mt-6 hidden">
+        <h2 class="text-xl font-black text-gray-800 mb-6 flex items-center gap-2">⚙️ KPM সেন্ট্রাল কন্ট্রোল প্যানেল</h2>
+        
+        <!-- সেকশন এ: নতুন এলাকা যুক্ত করুন (যা গ্রাহকের ২-কলাম UI তে অটো যাবে) -->
+        <div class="border-b border-gray-100 pb-6 mb-6">
+            <h3 class="text-sm font-black text-blue-600 uppercase tracking-wider mb-3">📍 নতুন এলাকা তৈরি করুন</h3>
+            <div class="space-y-3">
+                <input type="text" id="new-area-name" placeholder="এলাকার নাম লিখুন (উদা: সাহেবরামপুর)" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-blue-500">
+                <input type="text" id="new-area-feeder" placeholder="ফিডার আইডি লিখুন (উদা: feeder_sahebrampur)" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-blue-500">
+                <button onclick="createNewAreaViaUI()" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95">এলাকা লাইভ করুন 🚀</button>
+            </div>
+        </div>
+
+        <!-- সেকশন বি: এলাকার ভেতর সাব-নোড যুক্ত করুন (যা শুধু অ্যাডমিন প্যানেলে থাকবে) -->
+        <div>
+            <h3 class="text-sm font-black text-rose-600 uppercase tracking-wider mb-3">🛠️ এলাকার ভেতর ফল্ট সাব-নোড যুক্ত করুন</h3>
+            <div class="space-y-3">
+                <select id="admin-area-dropdown" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-rose-500">
+                    <!-- ডাইনামিকালি মেইন এলাকাগুলো এখানে লোড হবে -->
+                </select>
+                <input type="text" id="new-subnode-name" placeholder="সাব-নোডের স্থান (উদা: খাসেরহাট স্কুল রোড ২.১)" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-rose-500">
+                <input type="number" id="new-subnode-seq" placeholder="সিকুয়েন্স ক্রম (উদা: 1, 2, 3)" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-gray-700 outline-none focus:border-rose-500">
+                <button onclick="addNewSubNodeViaUI()" class="w-full py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-md transition-all active:scale-95">ফল্ট নোড যুক্ত করুন 🎯</button>
+            </div>
+        </div>
+    </div>
+
+
     <script>
         // 🔒 আপনার মেইন index.html থেকে Firebase Config হুবহু কপি করে এখানে বসান
         const firebaseConfig = {
@@ -148,6 +177,70 @@
             document.getElementById('panel-section').classList.add('hidden');
             document.getElementById('login-section').classList.remove('hidden');
         }
+
+        // ১. অ্যাডমিন ড্রপডাউনে মেইন এলাকাগুলো ফায়ারবেস থেকে স্বয়ংক্রিয়ভাবে লোড করা
+        db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
+            const areas = snapshot.val();
+            const areaDropdown = document.getElementById('admin-area-dropdown');
+            if (!areaDropdown || !areas) return;
+
+            areaDropdown.innerHTML = ''; // আগের অপশন পরিষ্কার করা
+            Object.keys(areas).forEach((areaId) => {
+                areaDropdown.innerHTML += `<option value="${areaId}">${areas[areaId].name}</option>`;
+            });
+        });
+
+        // ২. UI থেকে সরাসরি নতুন মেইন এলাকা তৈরি করা (যা গ্রাহকের ২-কলাম কার্ডে অটো যোগ হবে)
+        function createNewAreaViaUI() {
+            const areaName = document.getElementById('new-area-name').value.trim();
+            const feederId = document.getElementById('new-area-feeder').value.trim();
+
+            if (!areaName || !feederId) {
+                alert("দয়া করে এলাকার নাম এবং ফিডার আইডি দুটোই পূরণ করুন!");
+                return;
+            }
+
+            // একটি ইউনিক এরিয়া আইডি জেনারেট করা
+            const customAreaId = `area_${Date.now().toString().slice(-4)}`;
+
+            db.ref(`kalkini_power_monitor/areas/${customAreaId}`).set({
+                name: areaName,
+                feeder_id: feederId,
+                status: "Online", // নতুন এলাকা ডিফল্টভাবে অনলাইন থাকবে
+                last_ping: new Date().toLocaleString()
+            }).then(() => {
+                alert(`🎉 সফলভাবে মেইন এলাকা "${areaName}" যুক্ত হয়েছে! এটি এখন গ্রাহকদের ২-কলাম স্ক্রিনে লাইভ।`);
+                document.getElementById('new-area-name').value = '';
+                document.getElementById('new-area-feeder').value = '';
+            }).catch(err => alert("সার্ভার ত্রুটি, আবার চেষ্টা করুন।"));
+        }
+
+        // ৩. মেইন এলাকার ভেতরে সাব-নোড (২.১, ২.২) যুক্ত করা (যা শুধু বিদ্যুৎ অফিসের ফল্ট ট্র্যাকিংয়ে দেখাবে)
+        function addNewSubNodeViaUI() {
+            const selectedAreaId = document.getElementById('admin-area-dropdown').value;
+            const subNodeName = document.getElementById('new-subnode-name').value.trim();
+            const subNodeSeq = parseInt(document.getElementById('new-subnode-seq').value);
+
+            if (!subNodeName || isNaN(subNodeSeq)) {
+                alert("দয়া করে সাব-নোডের নাম এবং সঠিক ক্রম নম্বরটি লিখুন!");
+                return;
+            }
+
+            const newNodeId = `node_${subNodeSeq}_${Date.now().toString().slice(-3)}`;
+
+            // ফায়ারবেসের নির্দিষ্ট এরিয়ার ভেতরে 'nodes' সাব-কালেকশনে ডেটা রাইট করা
+            db.ref(`kalkini_power_monitor/areas/${selectedAreaId}/nodes/${newNodeId}`).set({
+                name: subNodeName,
+                status: "Online",
+                sequence: subNodeSeq,
+                last_ping: new Date().toLocaleString()
+            }).then(() => {
+                alert(`🎯 সফলভাবে ফল্ট সাব-নোড "${subNodeName}" যুক্ত হয়েছে! এটি শুধু অ্যাডমিন প্যানেলে দৃশ্যমান হবে।`);
+                document.getElementById('new-subnode-name').value = '';
+                document.getElementById('new-subnode-seq').value = '';
+            }).catch(err => alert("সার্ভার ত্রুটি, আবার চেষ্টা করুন।"));
+        }
+
     </script>
 </body>
 </html>
