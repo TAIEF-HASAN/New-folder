@@ -54,7 +54,7 @@
         <div id="admin-fault-monitor" class="p-6 bg-slate-950 text-white rounded-3xl shadow-2xl border border-slate-800">
             <div class="flex justify-between items-center border-b border-gray-800 pb-4 mb-4">
                 <h2 class="text-sm font-black tracking-wide text-rose-500 animate-pulse">📡 LIVE FAULT DIAGNOSTICS</h2>
-                <button id="master-switch-btn" onclick="toggleMasterSwitch()" class="px-3 py-1 bg-green-600 text-xs font-bold rounded-lg transition-all">মাস্টার ফিডার: ON</button>
+                
             </div>
             <div id="admin-alert-zone" class="p-4 rounded-xl bg-slate-900 border border-gray-800 text-center mb-4 transition-all duration-300 font-black text-sm">
                 <p class="text-gray-400 font-medium">সিস্টেম স্ক্যান করা হচ্ছে...</p>
@@ -161,22 +161,6 @@
         document.getElementById('admin-pass').value = '';
         document.getElementById('main-admin-dashboard').classList.add('hidden');
         document.getElementById('admin-login-card').classList.remove('hidden');
-    }
-
-    // ==========================================
-    // ⚡ ৩. মাস্টার ফিডার সুইচ (লোডশেডিং বনাম ব্রেকার ট্রিপ)
-    // ==========================================
-    function toggleMasterSwitch() {
-        currentMasterSwitch = (currentMasterSwitch === "ON") ? "OFF" : "ON";
-        const btn = document.getElementById('master-switch-btn');
-        if (currentMasterSwitch === "ON") {
-            btn.innerText = "মাস্টার ফিডার: ON";
-            btn.className = "px-3 py-1 bg-green-600 text-xs font-bold rounded-lg";
-        } else {
-            btn.innerText = "মাস্টার ফিডার: OFF (LOAD-SHEDDING)";
-            btn.className = "px-3 py-1 bg-amber-600 text-xs font-bold rounded-lg";
-        }
-        startAdminFaultEngine(); // সুইচ পরিবর্তন হলে লাইভ ম্যাপ রি-স্ক্যান করা
     }
 
     // ==========================================
@@ -288,77 +272,127 @@
         }).catch(err => alert("সার্ভার ত্রুটি!"));
     }
 
-    // ==========================================
-    // 📡 ৬. ইন্টেলিজেন্ট ফল্ট ডিরেকশন ইঞ্জিন (The Core Loop)
-    // ==========================================
-    function startAdminFaultEngine() {
-        db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
-            const areas = snapshot.val();
-            const alertZone = document.getElementById('admin-alert-zone');
-            const liveTree = document.getElementById('admin-live-tree');
-            if (!alertZone || !liveTree || !areas) return;
-            
-            liveTree.innerHTML = ''; // পূর্বের ভিউ পরিষ্কার করা
-            let faultDetected = false;
-            let faultMessage = "🟢 কালকিনির সকল ফিডার এবং সাব-সেকশন স্বাভাবিক আছে।";
-            let alertBgClass = "bg-green-950 border-green-800 text-green-400";
-            
-            // মেইন এলাকার লুপ
-            Object.keys(areas).forEach((areaId) => {
-                const area = areas[areaId];
-                liveTree.innerHTML += `<div class="text-xs font-bold text-gray-500 border-b border-gray-800 pb-1 mt-2">📍 এলাকা: ${area.name}</div>`;
-                
-                // সাব-নোডের লুপ ও সিকুয়েন্স শর্টিং
-                if (area.nodes) {
-                    const nodesList = Object.keys(area.nodes).map(key => area.nodes[key]);
-                    nodesList.sort((a, b) => a.sequence - b.sequence);
-                    
-                    for (let i = 0; i < nodesList.length; i++) {
-                        let currentNode = nodesList[i];
-                        let nodeStatusIcon = currentNode.status === "Online" ? "🟢" : "🔴";
-                        
-                        // এডমিন ম্যাপে সাব-নোডের পরিস্থিতি রেন্ডার করা
-                        liveTree.innerHTML += `
-                            <div class="flex justify-between items-center text-sm pl-4 py-1 bg-slate-800 my-1 rounded-xl border border-slate-700">
-                                <span>${currentNode.sequence}.0 ${currentNode.name}</span>
-                                <span>${nodeStatusIcon} <span class="text-xs text-gray-500">${currentNode.status}</span></span>
-                            </div>
-                        `;
-                        
-                        // সিকুয়েন্স ব্রেক পয়েন্ট (ফল্ট জোন) অ্যালগরিদম
-                        if (i < nodesList.length - 1) {
-                            let nextNode = nodesList[i + 1];
-                            if (currentNode.status === "Online" && nextNode.status === "Offline") {
-                                faultDetected = true;
-                                faultMessage = `🚨 CRITICAL FAULT: ${area.name} এলাকার "${currentNode.name}" এবং "${nextNode.name}" এর মধ্যবর্তী লাইনে ফল্ট (তার ছেঁড়া/ফিউজ পোড়া) হয়েছে!`;
-                                alertBgClass = "bg-red-950 border-red-800 text-red-400 animate-bounce";
-                            }
-                        }
-                    }
+    
+    // গ্লোবাল অবজেক্ট - যা প্রতিটি ফিডারের আলাদা আলাদা মাস্টার সুইচ স্টেট (ON/OFF) মনে রাখবে
+    let masterSwitches = {};
 
-                                        // এজিএম স্যারের চ্যালেঞ্জ: অল নোড অফলাইন অ্যানালিটিক্স
-                    const allOffline = nodesList.every(node => node.status === "Offline");
-                    if (allOffline && !faultDetected) {
-                        if (currentMasterSwitch === "OFF") {
-                            faultMessage = `⚠️ INFO: ${area.name} ফিডারে বর্তমানে অফিশিয়াল লোডশেডিং চলছে।`;
-                            alertBgClass = "bg-amber-950 border-amber-800 text-amber-400";
-                        } else {
-                            // মাস্টার ফিডার অন কিন্তু সব নোড অফলাইন = মেইন ব্রেকার ট্রিপ ফল্ট!
-                            faultMessage = `🚨 BREAKING ALERT: ${area.name} ফিডারের মেইন ব্রেকার ট্রিপ করেছে! এটি লোডশেডিং নয়, লাইনে মেজর ফল্ট হয়েছে!`;
-                            alertBgClass = "bg-red-950 border-red-500 border-2 text-red-400 animate-pulse";
-                            if (nodesList.length > 0) {
-                                faultMessage += ` (সম্ভাব্য জোন: ${nodesList[0].name})`;
+    // ৩. ডাইনামিক মাস্টার সুইচ কন্ট্রোল (ফিডার আইডি অনুযায়ী অন/অফ করা)
+    function toggleMasterSwitch(feederId) {
+        // যদি আগে থেকে কোনো স্টেট না থাকে, তবে ডিফল্ট ON থাকবে
+        if (!masterSwitches[feederId]) masterSwitches[feederId] = "ON";
+        
+        // স্টেট পরিবর্তন করা (ON হলে OFF, OFF হলে ON)
+        masterSwitches[feederId] = (masterSwitches[feederId] === "ON") ? "OFF" : "ON";
+        
+        // ফায়ারবেসের রুট নোডের 'feeders' এর ভেতরেও লাইভ স্ট্যাটাস আপডেট করে দেওয়া
+        db.ref(`kalkini_power_monitor/feeders/${feederId}`).update({
+            status: masterSwitches[feederId]
+        });
+        
+        startAdminFaultEngine(); // বাটন চাপার সাথে সাথে ম্যাপ রি-স্ক্যান করা
+    }
+
+    // 📡 ৬. ইন্টেলিজেন্ট ফল্ট ডিরেকশন ইঞ্জিন (চূড়ান্ত ডাইনামিক ও মাল্টি-ফিডার সংস্করণ)
+    function startAdminFaultEngine() {
+        // প্রথমে ফায়ারবেস থেকে ফিডারের লাইভ লিস্ট রিড করা (মাস্টার বাটন বানানোর জন্য)
+        db.ref('kalkini_power_monitor/feeders').on('value', (feederSnap) => {
+            const feedersData = feederSnap.val() || {};
+            
+            // ফায়ারবেস থেকে এলাকার লাইভ লিস্ট রিড করা
+            db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
+                const areas = snapshot.val();
+                const alertZone = document.getElementById('admin-alert-zone');
+                const liveTree = document.getElementById('admin-live-tree');
+                if (!alertZone || !liveTree || !areas) return;
+                
+                liveTree.innerHTML = ''; // পূর্বের ভিউ পরিষ্কার করা
+                
+                // 🚀 ম্যাজিক পার্ট: স্ক্রিনের ওপরে ডাইনামিকালি ফিডার বাটন হেডার তৈরি করা
+                let headerHTML = `<div class="text-xs font-bold text-slate-400 mb-2 border-b border-slate-800 pb-2">🎛️ ফিডার কন্ট্রোল সুইচ:</div>
+                                <div class="grid grid-cols-2 gap-2 mb-4">`;
+                
+                Object.keys(feedersData).forEach((fId) => {
+                    // গ্লোবাল স্টেটে ফিডারের বর্তমান অবস্থা সিঙ্ক করা
+                    if (!masterSwitches[fId]) masterSwitches[fId] = feedersData[fId].status || "ON";
+                    
+                    let btnColor = masterSwitches[fId] === "ON" ? "bg-green-600" : "bg-amber-600";
+                    headerHTML += `
+                        <button onclick="toggleMasterSwitch('${fId}')" class="px-2 py-1.5 ${btnColor} text-[11px] font-black rounded-xl text-left truncate transition-all active:scale-95">
+                            ${masterSwitches[fId] === "ON" ? "🟢" : "⚠️"} ${feedersData[fId].name}: ${masterSwitches[fId]}
+                        </button>
+                    `;
+                });
+                headerHTML += `</div>`;
+                
+                // বাটনগুলো লাইভ ট্রির একদম উপরে পুশ করা
+                liveTree.innerHTML = headerHTML;
+                
+                let faultDetected = false;
+                let faultMessages = [];
+                let alertBgClass = "bg-green-950 border-green-800 text-green-400";
+                
+                // কালকিনির প্রতিটা মেইন এলাকার ওপর লুপ চালানো
+                Object.keys(areas).forEach((areaId) => {
+                    const area = areas[areaId];
+                    const associatedFeeder = area.feeder_id;
+                    
+                    liveTree.innerHTML += `<div class="text-xs font-black text-amber-500 border-b border-slate-800 pb-1 mt-3">📍 এলাকা: ${area.name} (${feedersData[associatedFeeder]?.name || 'Unknown Feeder'})</div>`;
+                    
+                    if (area.nodes) {
+                        const nodesList = Object.keys(area.nodes).map(key => area.nodes[key]);
+                        nodesList.sort((a, b) => a.sequence - b.sequence);
+                        
+                        for (let i = 0; i < nodesList.length; i++) {
+                            let currentNode = nodesList[i];
+                            let nodeStatusIcon = currentNode.status === "Online" ? "🟢" : "🔴";
+                            
+                            liveTree.innerHTML += `
+                                <div class="flex justify-between items-center text-sm pl-4 py-1.5 bg-slate-800 my-1 rounded-xl border border-slate-700">
+                                    <span>${currentNode.sequence}.0 ${currentNode.name}</span>
+                                    <span>${nodeStatusIcon} <span class="text-xs text-slate-500">${currentNode.status}</span></span>
+                                </div>
+                            `;
+                            
+                            // ফল্ট ডিটেকশন (সিরিজ/প্যারালাল চেইন ব্রেক)
+                            if (i < nodesList.length - 1) {
+                                let nextNode = nodesList[i + 1];
+                                if (currentNode.status === "Online" && nextNode.status === "Offline") {
+                                    faultDetected = true;
+                                    faultMessages.push(`🚨 ${area.name}: "${currentNode.name}" ও "${nextNode.name}" এর মাঝে ফল্ট হয়েছে!`);
+                                    alertBgClass = "bg-red-950 border-red-800 text-red-400 animate-bounce";
+                                }
+                            }
+                        }
+                        
+                        // ব্রেকার ট্রিপ বনাম অফিশিয়াল লোডশেডিং (সুনির্দিষ্ট ফিডারের সুইচের ওপর ভিত্তি করে)
+                        const allOffline = nodesList.every(node => node.status === "Offline");
+                        if (allOffline) {
+                            let feederState = masterSwitches[associatedFeeder] || "ON";
+                            if (feederState === "OFF") {
+                                faultMessages.push(`⚠️ INFO: ${area.name} এলাকায় অফিশিয়াল লোডশেডিং চলছে।`);
+                                if(!faultDetected) alertBgClass = "bg-amber-950 border-amber-800 text-amber-400";
+                            } else {
+                                faultDetected = true;
+                                let msg = `🚨 ALERT: ${area.name} এর মেইন ব্রেকার ট্রিপ করেছে!`;
+                                if (nodesList.length > 0) msg += ` (সম্ভাব্য জোন: ${nodesList[0].name})`;
+                                faultMessages.push(msg);
+                                alertBgClass = "bg-red-950 border-red-500 border-2 text-red-400 animate-pulse";
                             }
                         }
                     }
+                });
+                
+                // সাইরেন বক্সে সব ফিডারের মেসেজ একসাথে সুন্দর করে দেখানো
+                if (faultMessages.length > 0) {
+                    alertZone.innerText = faultMessages.join(" | ");
+                } else {
+                    alertZone.innerText = "🟢 কালকিনির সকল ফিডার এবং সাব-সেকশন স্বাভাবিক আছে।";
                 }
+                alertZone.className = `p-4 rounded-xl text-xs font-black text-center mb-4 transition-all duration-300 ${alertBgClass}`;
             });
-            
-            // সাইরেন বক্স ইউআই আপডেট
-            alertZone.className = `p-4 rounded-xl text-sm font-black text-center mb-4 transition-all duration-300 ${alertBgClass}`;
-            alertZone.innerText = faultMessage;
         });
     }
+
 </script>
                     
 
