@@ -184,6 +184,16 @@
                 firebase.initializeApp(firebaseConfig);
                 const db = firebase.database();
 
+                // 📱 ব্রাউজারে KPM সার্ভিস ওয়ার্কার সচল করার স্ক্রিপ্ট
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', () => {
+                        navigator.serviceWorker.register('service-worker.js')
+                            .then((reg) => console.log('KPM PWA Service Worker Registered! Scope:', reg.scope))
+                            .catch((err) => console.error('Service Worker Registration Failed:', err));
+                    });
+                }
+
+
                 const ctx = document.getElementById('powerChart').getContext('2d');
                 const powerChart = new Chart(ctx, {
                 type: 'line',
