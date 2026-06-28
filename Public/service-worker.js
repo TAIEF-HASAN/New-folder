@@ -3,9 +3,9 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  'https://tailwindcss.com',
-  'https://icons8.com',
-  'https://icons8.com'
+  'https://cdn.tailwindcss.com',
+  'https://icons8.com/fluency/192/000000/electricity.png',
+  'https://icons8.com/fluency/512/000000/electricity.png'
 ];
 
 // ১. অ্যাপ ইনস্টল হওয়ার সময় প্রয়োজনীয় ফাইলগুলো ক্যাশ (Cache) করা
