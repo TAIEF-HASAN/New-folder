@@ -1,12 +1,13 @@
 const CACHE_NAME = 'kpm-app-cache-v1';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
+  '/Public/',
+  '/Public/index.html',
+  '/Public/manifest.json',
   'https://cdn.tailwindcss.com',
-  'https://icons8.com/fluency/192/000000/electricity.png',
-  'https://icons8.com/fluency/512/000000/electricity.png'
+  'https://img.icons8.com/fluency/192/000000/electricity.png',
+  'https://img.icons8.com/fluency/512/000000/electricity.png'
 ];
+
 
 // ১. অ্যাপ ইনস্টল হওয়ার সময় প্রয়োজনীয় ফাইলগুলো ক্যাশ (Cache) করা
 self.addEventListener('install', (event) => {

@@ -3,17 +3,17 @@
   "name": "Kalkini Power Monitor (KPM)",
   "icons": [
     {
-      "src": "https://icons8.com",
+      "src": "https://img.icons8.com/fluency/192/000000/electricity.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "https://icons8.com",
+      "src": "https://img.icons8.com/fluency/512/000000/electricity.png",
       "type": "image/png",
       "sizes": "512x512"
     }
   ],
-  "start_url": "/index.html",
+  "start_url": "/Public/index.html",
   "background_color": "#0f172a",
   "theme_color": "#f59e0b",
   "display": "standalone",
