@@ -38,6 +38,11 @@
                 <input type="password" id="admin-pass" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition" placeholder="••••••••">
             </div>
             <button onclick="handleAdminLogin()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-amber-500/20 mt-2">লগইন করুন</button>
+            <!-- কাস্টমার ড্যাশবোর্ডে ফিরে যাওয়ার বাটন (লগইন স্ক্রিন) -->
+            <button onclick="window.location.href='index.html';" class="w-full bg-slate-700 hover:bg-slate-650 text-white font-bold py-2 rounded-xl transition text-xs mt-3">
+                ⬅️ গ্রাহক ড্যাশবোর্ডে ফিরে যান
+            </button>
+
         </div>
     </div>
 
@@ -53,6 +58,11 @@
                 <p class="text-slate-400 text-xs">সবগুলো মডিউল এখন আপনার নিয়ন্ত্রণে</p>
             </div>
             <button onclick="handleLogout()" class="text-xs font-bold bg-slate-700 hover:bg-red-600 px-4 py-2 rounded-xl transition">লগআউট</button>
+            <!-- কাস্টমার ড্যাশবোর্ডে ফিরে যাওয়ার বাটন (মেইন ড্যাশবোর্ড স্ক্রিন) -->
+            <button onclick="window.location.href='index.html';" class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl transition mr-2">
+                📊 কাস্টমার ভিউ
+            </button>
+
         </div>
 
         <!-- 📡 মডিউল এ: লাইভ ফল্ট ও লোডশেডিং ডায়াগনস্টিক ম্যাপ -->
