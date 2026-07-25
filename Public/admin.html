@@ -378,8 +378,8 @@
                                 }
                             }
                         }
-                        
-                        // ব্রেকার ট্রিপ বনাম অফিশিয়াল লোডশেডিং (সুনির্দিষ্ট ফিডারের সুইচের ওপর ভিত্তি করে)
+
+                        // ⚡ ব্রেকার ট্রিপ বনাম অফিশিয়াল লোডশেডিং চেক (সুনির্দিষ্ট ফিডারের সুইচের ওপর ভিত্তি করে)
                         const allOffline = nodesList.every(node => node.status === "Offline");
                         if (allOffline) {
                             let feederState = masterSwitches[associatedFeeder] || "ON";
@@ -388,14 +388,24 @@
                                 if(!faultDetected) alertBgClass = "bg-amber-950 border-amber-800 text-amber-400";
                             } else {
                                 faultDetected = true;
-                                let msg = `🚨 ALERT: ${area.name} এর মেইন ব্রেকার ট্রিপ করেছে!`;
-                                if (nodesList.length > 0) msg += ` (সম্ভাব্য জোন: ${nodesList[0].name})`;
-                                faultMessages.push(msg);
+                                faultMessages.push(`🚨 ALERT: ${area.name} এর মেইন ব্রেকার ট্রিপ করেছে!`);
                                 alertBgClass = "bg-red-950 border-red-500 border-2 text-red-400 animate-pulse";
                             }
+                        } 
+                        
+                        // 🎯 [CRITICAL FIX]: ১ম নোড অফলাইন কিন্তু বাকিরা অনলাইন থাকলে এই লজিক স্বাধীনভাবে কাজ করবে
+                        if (!allOffline && nodesList.length > 0 && nodesList[0] && nodesList[0].status === "Offline") {
+                            let feederState = masterSwitches[associatedFeeder] || "ON";
+                            if (feederState === "ON") {
+                                faultDetected = true;
+                                faultMessages.push(`🚨 ${area.name}: "ফিডার সোর্স" ও "${nodesList[0].name}" এর মাঝে ফল্ট হয়েছে!`);
+                                alertBgClass = "bg-red-950 border-red-850 border-2 text-red-400 animate-bounce";
+                            }
                         }
-                    }
-                });
+
+                    } // if (area.nodes) এর শেষ ব্র্যাকেট
+                }); // Object.keys(areas).forEach এর শেষ ব্র্যাকেট
+
                 
                 // সাইরেন বক্সে সব ফিডারের মেসেজ একসাথে সুন্দর করে দেখানো
                 if (faultMessages.length > 0) {
@@ -408,8 +418,6 @@
         });
     }
 
-</script>
-                    
-
+</script>                    
     </body>
 </html>
