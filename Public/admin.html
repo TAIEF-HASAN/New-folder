@@ -158,6 +158,12 @@
         const user = document.getElementById('admin-user').value.trim();
         const pass = document.getElementById('admin-pass').value.trim();
 
+        // 🎯 [FIXED LOGIC]: খালি ঘর চেক করার ফ্রন্টএন্ড ভ্যালিডেশন (সবার আগে রান হবে)
+        if (!user || !pass) {
+            alert("অনুগ্রহ করে সব তথ্য পূরণ করুন!");
+            return; // কোড এখানেই থেমে যাবে, নিচে আর যাবে না
+        }
+
         // সুরক্ষিত ক্রেডেনশিয়াল চেক
         if (user === "admin" && pass === "kpm2026") {
             document.getElementById('admin-login-card').classList.add('hidden');
@@ -170,6 +176,7 @@
             alert("ভুল ইউজারনেম বা পাসওয়ার্ড! দয়া করে সঠিক তথ্য দিন।");
         }
     }
+
 
     function handleLogout() {
         document.getElementById('admin-user').value = '';
