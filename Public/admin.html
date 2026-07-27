@@ -154,36 +154,72 @@
     // ==========================================
     // 🔒 ২. সেন্ট্রাল গেটওয়ে (লগইন ও লগআউট সিস্টেম)
     // ==========================================
+    // ১. আপনার আগের ফাংশনটি (ভেতরে সেশন সেটসহ)
+    // 🔐 [AUTOMATED SECURITY GUARD]: পেজ লোড, রিফ্রেশ বা ব্যাক-ফরওয়ার্ড চেক করার গ্লোবাল ফাংশন
+    function checkAdminSessionState() {
+        const loginCard = document.getElementById('admin-login-card');
+        const adminDashboard = document.getElementById('main-admin-dashboard');
+
+        if (loginCard && adminDashboard) {
+            // যদি মেমোরিতে অলরেডি সফল লগইনের টোকেন থাকে (পেজ রিফ্রেশ বা রিলোডের ক্ষেত্রে)
+            if (sessionStorage.getItem("kpm_admin_session") === "authenticated") {
+                loginCard.classList.add('hidden');
+                adminDashboard.classList.remove('hidden');
+                
+                // রিফ্রেশ হওয়ার পর ডেটা সার্ভিস পুনরায় সচল করা
+                if (typeof loadCurrentNotice === "function") loadCurrentNotice();
+                if (typeof startAdminFaultEngine === "function") startAdminFaultEngine();
+            } 
+            // যদি মেমোরিতে কোনো টোকেন না থাকে (লগআউট বা অবৈধ প্রবেশের ক্ষেত্রে)
+            else {
+                adminDashboard.classList.add('hidden');
+                loginCard.classList.remove('hidden');
+            }
+        }
+    }
+
+    // পেজটি স্ক্রিনে দৃশ্যমান হওয়ার সাথে সাথেই গ্লোবাল গার্ড সচল হবে
+    window.addEventListener('pageshow', checkAdminSessionState);
+
+    // 🚪 [ADMIN LOGIN]: ১০০০% সচল এবং সিকিউরড লগইন ফাংশন
     function handleAdminLogin() {
         const user = document.getElementById('admin-user').value.trim();
         const pass = document.getElementById('admin-pass').value.trim();
 
-        // 🎯 [FIXED LOGIC]: খালি ঘর চেক করার ফ্রন্টএন্ড ভ্যালিডেশন (সবার আগে রান হবে)
         if (!user || !pass) {
             alert("অনুগ্রহ করে সব তথ্য পূরণ করুন!");
-            return; // কোড এখানেই থেমে যাবে, নিচে আর যাবে না
+            return;
         }
 
-        // সুরক্ষিত ক্রেডেনশিয়াল চেক
         if (user === "admin" && pass === "kpm2026") {
-            document.getElementById('admin-login-card').classList.add('hidden');
-            document.getElementById('main-admin-dashboard').classList.remove('hidden');
-            
-            // লগইন সফল হলে ব্যাকগ্রাউন্ডে সব ডেটা ইঞ্জিন সচল করা
-            loadCurrentNotice();
-            startAdminFaultEngine();
+            // ব্রাউজার মেমোরিতে সেশন টোকেন লক
+            sessionStorage.setItem("kpm_admin_session", "authenticated");
+
+            // ভিউ সিঙ্ক করতে সরাসরি আমাদের গ্লোবাল গার্ড ফাংশনটিকে কল করা
+            checkAdminSessionState();
         } else {
             alert("ভুল ইউজারনেম বা পাসওয়ার্ড! দয়া করে সঠিক তথ্য দিন।");
         }
     }
 
-
+    // 📌 [ADMIN LOGOUT]: বাগমুক্ত লগআউট ফাংশন
     function handleLogout() {
+        // সেশন মেমোরি চিরতরে ডিলিট করা
+        sessionStorage.removeItem("kpm_admin_session");
+        sessionStorage.clear();
+
+        // ইনপুট ফিল্ড ও ভিউ রিসেট
         document.getElementById('admin-user').value = '';
         document.getElementById('admin-pass').value = '';
-        document.getElementById('main-admin-dashboard').classList.add('hidden');
-        document.getElementById('admin-login-card').classList.remove('hidden');
+        
+        // ভিউ সিঙ্ক করা
+        checkAdminSessionState();
+
+        // ব্রাউজারের নেভিগেশন হিস্ট্রি এবং ক্যাশ মেমোরি সম্পূর্ণ ফ্লাশ করতে রিফ্রেশ
+        window.location.reload();
     }
+
+
 
     // ==========================================
     // 📢 ৪. ইমার্জেন্সি নোটিশ বোর্ড ব্যাকএন্ড ইঞ্জিন
