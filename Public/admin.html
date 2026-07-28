@@ -151,6 +151,12 @@
     // গ্লোবাল স্টেট ভ্যারিয়েবল
     let currentMasterSwitch = "ON";
 
+    // 🎯 [GLOBAL STATE TRACKER]: কোন নোডটি কখন অফলাইন হচ্ছে তার লাইভ মিলি-সেকেন্ড ট্র্যাক করার অবজেক্ট
+    if (!window.nodeOfflineTimestamps) {
+        window.nodeOfflineTimestamps = {};
+    }
+
+
     // 🔐 [AUTOMATED SECURITY GUARD]: পেজ লোড, রিফ্রেশ বা ব্যাক-ফরওয়ার্ড চেক করার গ্লোবাল ফাংশন
     function checkAdminSessionState() {
         const loginCard = document.getElementById('admin-login-card');
@@ -407,6 +413,18 @@
                                 </div>
                             `;
                             
+                            // <span>${nodeStatusIcon} <span class="text-xs text-slate-500">${currentNode.status}</span></span></div>`;
+
+                            let nodeKey = currentNode.name; // নোড চেনার জন্য ইউনিক নাম ব্যবহার করা হলো
+                            if (currentNode.status === "Offline") {
+                                if (!window.nodeOfflineTimestamps[nodeKey]) {
+                                    window.nodeOfflineTimestamps[nodeKey] = Date.now(); // লাইভ অফলাইন হওয়ার সময় লক
+                                }
+                            } else {
+                                delete window.nodeOfflineTimestamps[nodeKey]; // অনলাইন হলে মেমোরি রিসেট
+                            }
+
+                            
                             // ফল্ট ডিটেকশন (সিরিজ/প্যারালাল চেইন ব্রেক)
                             if (i < nodesList.length - 1) {
                                 let nextNode = nodesList[i + 1];
@@ -418,8 +436,8 @@
                             }
                         }
 
-                        // ⚡ ব্রেকার ট্রিপ বনাম অফিশিয়াল লোডশেডিং চেক (সুনির্দিষ্ট ফিডারের সুইচের ওপর ভিত্তি করে)
-                        const allOffline = nodesList.every(node => node.status === "Offline");
+                                // ⚡ ব্রেকার ট্রিপ চেক (সুনির্দিষ্ট ফিডারের সুইচের ওপর ভিত্তি করে)
+                        const allOffline = nodesList.length > 0 && nodesList.every(node => node.status === "Offline");
                         if (allOffline) {
                             let feederState = masterSwitches[associatedFeeder] || "ON";
                             if (feederState === "OFF") {
@@ -427,10 +445,31 @@
                                 if(!faultDetected) alertBgClass = "bg-amber-950 border-amber-800 text-amber-400";
                             } else {
                                 faultDetected = true;
-                                faultMessages.push(`🚨 ALERT: ${area.name} এর মেইন ব্রেকার ট্রিপ করেছে!`);
+                                
+                                // 🎯 [PRO LIVE FIX]: লাইভ মেমোরি ট্র্যাকার থেকে সবচেয়ে আগে বন্ধ হওয়া নোডটি বের করা
+                                let earliestNode = nodesList[0];
+                                let earliestTime = Infinity;
+
+                                nodesList.forEach(node => {
+                                    let nodeKey = node.name;
+                                    let offlineTimestamp = window.nodeOfflineTimestamps[nodeKey];
+
+                                    if (offlineTimestamp && offlineTimestamp < earliestTime) {
+                                        earliestTime = offlineTimestamp;
+                                        earliestNode = node;
+                                    }
+                                });
+
+                                let msg = ` 🚨 ALERT: ${area.name} এর মেইন ব্রেকার ট্রিপ করেছে!`;
+                                if (earliestNode && earliestNode.name) {
+                                    msg += ` (সম্ভাব্য জোন: ${earliestNode.name})`;
+                                }
+                                faultMessages.push(msg);
                                 alertBgClass = "bg-red-950 border-red-500 border-2 text-red-400 animate-pulse";
                             }
-                        } 
+                        }
+
+ 
                         
                         // 🎯 [CRITICAL FIX]: ১ম নোড অফলাইন কিন্তু বাকিরা অনলাইন থাকলে এই লজিক স্বাধীনভাবে কাজ করবে
                         if (!allOffline && nodesList.length > 0 && nodesList[0] && nodesList[0].status === "Offline") {
