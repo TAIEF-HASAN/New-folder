@@ -3,7 +3,7 @@ const ASSETS_TO_CACHE = [
   '/Public/',
   '/Public/index.html',
   '/Public/manifest.json',
-  'https://cdn.tailwindcss.com',
+  '/Public/css/tailwind.css',
   'https://img.icons8.com/fluency/192/000000/electricity.png',
   'https://img.icons8.com/fluency/512/000000/electricity.png'
 ];
