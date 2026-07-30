@@ -3,6 +3,7 @@ const ASSETS_TO_CACHE = [
   '/Public/',
   '/Public/index.html',
   '/Public/manifest.json',
+  '/Public/admin.html', // 🎯 [CRITICAL FIX]: অ্যাডমিন প্যানেল ফাইলটি অফলাইন ক্যাশ তালিকায় যুক্ত করা হলো
   'https://img.icons8.com/fluency/192/000000/electricity.png',
   'https://img.icons8.com/fluency/512/000000/electricity.png'
 ];
