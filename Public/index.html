@@ -275,7 +275,7 @@
                 });
                 
                 // অ্যাপ ওপেন করার সময় আগে থেকেই এরিয়া সেভ আছে কি না চেক করা
-                checkExistingUser();
+                //checkExistingUser();
             });
 
             // ২. কার্ড সিলেক্ট করলে হাইলাইট করার ভিজ্যুয়াল ইফেক্ট (Tailwind Dynamic Class)
@@ -316,6 +316,10 @@
                     goToDashboard(); // ডিরেক্ট ড্যাশবোর্ডে স্কিপ করবে
                 }
             }
+
+            // 🔐 [ZERO-LATENCY AUTH GUARD]: পেজ লোড বা সেশন সচল হওয়ার সাথে সাথে সবার আগে এটি রান হবে
+            document.addEventListener('DOMContentLoaded', checkExistingUser);
+            window.addEventListener('pageshow', checkExistingUser);
 
         
 
@@ -701,6 +705,19 @@
                 if (!savedAreaId) return;
 
                 console.log("Loading Dashboard for Area:", savedAreaId);
+
+                // 🌐 [OFFLINE EMERGENCY RESILIENCE]: ইন্টারনেট বন্ধ থাকলে ফায়ারবেস অন রিকোয়েস্ট স্কিপ করবে
+                if (!navigator.onLine) {
+                    console.log("⚡ KPM: Offline Blackout Detected. Rendering interface via local cache.");
+                    
+                    // অফলাইন মোডে স্ক্রিনের ডিফল্ট লোডিং টেক্সট পরিবর্তন করে দেওয়া
+                    const currentStatus = document.getElementById('current-status');
+                    const statusTime = document.getElementById('status-time');
+                    
+                    if (currentStatus) currentStatus.innerText = "Offline মোড";
+                    if (statusTime) statusTime.innerText = "⚠️ ইন্টারনেট সংযোগ বিচ্ছিন্ন। লোকাল ক্যাশ ভিউ সচল।";
+                    return; // কোড এখানেই ব্রেক হয়ে যাবে, অফলাইনে ফায়ারবেসকে আর ডিস্টার্ব করবে না
+                }
 
                 // ফায়ারবেস থেকে শুধুমাত্র এই নির্দিষ্ট এলাকার লাইভ ডেটা রিড করা
                 db.ref(`kalkini_power_monitor/areas/${savedAreaId}`).on('value', (snapshot) => {
