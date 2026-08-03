@@ -57,18 +57,18 @@
     <div id="main-admin-dashboard" class="w-full max-w-2xl space-y-6 hidden">
         
         <!-- টপ বার (লগআউট বাটনসহ) -->
-        <div class="flex justify-between items-center bg-slate-800 p-4 rounded-2xl border border-slate-700">
-            <div>
-                <h1 class="text-xl font-black text-amber-500">⚙️ Central Controller</h1>
-                <p class="text-slate-400 text-xs">সবগুলো মডিউল এখন আপনার নিয়ন্ত্রণে</p>
-            </div>
-            <button onclick="handleLogout()" class="text-xs font-bold bg-slate-700 hover:bg-red-600 px-4 py-2 rounded-xl transition">লগআউট</button>
-            <!-- কাস্টমার ড্যাশবোর্ডে ফিরে যাওয়ার বাটন (মেইন ড্যাশবোর্ড স্ক্রিন) -->
-            <button onclick="window.location.href='index.html';" class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-xl transition mr-2">
-                📊 কাস্টমার ভিউ
-            </button>
-
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800 p-4 rounded-2xl border border-slate-700 gap-3">
+        <div>
+            <h1 class="text-xl font-black text-amber-500 flex items-center gap-1">⚙️ Central Controller</h1>
+            <p class="text-slate-400 text-xs">সবগুলো মডিউল এখন আপনার নিয়ন্ত্রণে</p>
         </div>
+        <!-- 🎯 [MOBILE RESPONSIVE FLEX]: মোবাইলে বাটন দুটোকে নিচে নিচে নামিয়ে সুন্দর গ্যাপ দেবে -->
+        <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+            <button onclick="handleLogout()" class="text-xs font-bold bg-slate-700 hover:bg-red-600 px-4 py-2.5 rounded-xl transition">লগআউট</button>
+            <button onclick="window.location.href='index.html';" class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition">📊 কাস্টমার ভিউ</button>
+        </div>
+        </div>
+
 
         <!-- 📡 মডিউল এ: লাইভ ফল্ট ও লোডশেডিং ডায়াগনস্টিক ম্যাপ -->
         <div id="admin-fault-monitor" class="p-6 bg-slate-950 text-white rounded-3xl shadow-2xl border border-slate-800">
