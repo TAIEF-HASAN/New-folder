@@ -188,6 +188,9 @@
     // পেজটি স্ক্রিনে দৃশ্যমান হওয়ার সাথে সাথেই গ্লোবাল গার্ড সচল হবে
     window.addEventListener('pageshow', checkAdminSessionState);
 
+    // 🎯 [ZERO-LATENCY RETENTION GUARD]: পেজ রেন্ডার হওয়ার ১ম মিলি-সেকেন্ডেই সেশন ভ্যালিডেট করে দেবে!
+    document.addEventListener('DOMContentLoaded', checkAdminSessionState);
+
     // 🚪 [ADMIN LOGIN]: ১০০০% সচল এবং সিকিউরড লগইন ফাংশন
     function handleAdminLogin() {
         const user = document.getElementById('admin-user').value.trim();
