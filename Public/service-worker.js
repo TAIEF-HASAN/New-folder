@@ -38,11 +38,39 @@ self.addEventListener('activate', (event) => {
 });
 
 // ৩. অফলাইন মোডেও যেন অ্যাপটি ওপেন হয়, তার জন্য ক্যাশ থেকে ডেটা রিড করা
+// ====== service-worker.js এর ৩ নম্বর fetch পার্টটি এভাবে আপডেট করুন ======
+
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      // যদি ফাইল ক্যাশে থাকে তবে ওটাই দেখাবে, না থাকলে ইন্টারনেট থেকে নেবে
-      return cachedResponse || fetch(event.request);
-    })
-  );
+  // শুধুমাত্র GET রিকোয়েস্ট এবং এইচটিএমএল/অ্যাসেট রিকোয়েস্ট ইন্টারসেপ্ট করা
+  if (event.request.method === 'GET') {
+    event.respondWith(
+      // ১. সবার আগে লোকাল সার্ভিস ওয়ার্কার ক্যাশ বক্সে ফাইলটি খোঁজা
+      caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
+        
+        // ২. ক্যাশে ফাইলটি পাওয়া গেলে সাথে সাথে ওটাই রিটার্ন করবে (জিরো নেটওয়ার্ক ল্যাগ)
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        // ৩. ক্যাশে না থাকলে ব্যাকগ্রাউন্ডে নেটওয়ার্ক থেকে টানার চেষ্টা করবে
+        return fetch(event.request).then((networkResponse) => {
+          // যদি ভ্যালিড রেসপন্স আসে, তবে ওটাকে ফিউচারের জন্য ক্যাশে সেভ করে রাখবে
+          if (networkResponse && networkResponse.status === 200) {
+            return caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, networkResponse.clone());
+              return networkResponse;
+            });
+          }
+          return networkResponse;
+        }).catch(() => {
+          // 🚨 [FALLBACK GUARD]: যদি ইন্টারনেট একবারে বন্ধ থাকে এবং নেটওয়ার্ক টোটাল ফেইল করে
+          if (event.request.headers.get('accept').includes('text/html')) {
+            // জোর করে আমাদের ক্যাশ করা মেইন ফাইলগুলো স্ক্রিনে ফিড করা
+            return caches.match('index.html') || caches.match('admin.html');
+          }
+        });
+      })
+    );
+  }
 });
+
