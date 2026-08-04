@@ -1,9 +1,10 @@
 const CACHE_NAME = 'kpm-app-cache-v1';
 const ASSETS_TO_CACHE = [
+  '/', // রুট পাথ
   '/Public/',
-  '/Public/index.html',
+  '/Public/index.html',  // কাস্টমার মেইন ফাইল
   '/Public/manifest.json',
-  '/Public/admin.html', // 🎯 [CRITICAL FIX]: অ্যাডমিন প্যানেল ফাইলটি অফলাইন ক্যাশ তালিকায় যুক্ত করা হলো
+  '/Public/admin.html', // 🎯 [CRITICAL FIX]: অ্যাডমিন প্যানেল ফাইলটি অফলাইন ক্যাশ তালিকায় যুক্ত করা হলো    // অ্যাডমিন মেইন ফাইল
   'https://img.icons8.com/fluency/192/000000/electricity.png',
   'https://img.icons8.com/fluency/512/000000/electricity.png'
 ];
@@ -41,36 +42,37 @@ self.addEventListener('activate', (event) => {
 // ====== service-worker.js এর ৩ নম্বর fetch পার্টটি এভাবে আপডেট করুন ======
 
 self.addEventListener('fetch', (event) => {
-  // শুধুমাত্র GET রিকোয়েস্ট এবং এইচটিএমএল/অ্যাসেট রিকোয়েস্ট ইন্টারসেপ্ট করা
+  // শুধুমাত্র GET রিকোয়েস্টগুলো ইন্টারসেপ্ট করা
   if (event.request.method === 'GET') {
     event.respondWith(
-      // ১. সবার আগে লোকাল সার্ভিস ওয়ার্কার ক্যাশ বক্সে ফাইলটি খোঁজা
+      // প্রথমে ক্যাশ মেমোরিতে নিখুঁতভাবে ফাইল খোঁজা
       caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
-        
-        // ২. ক্যাশে ফাইলটি পাওয়া গেলে সাথে সাথে ওটাই রিটার্ন করবে (জিরো নেটওয়ার্ক ল্যাগ)
+        // ১. ক্যাশে ফাইল পাওয়া গেলে সার্ভারের জন্য ১ মিলি-সেকেন্ডও অপেক্ষা না করে ওটাই রিটার্ন করবে
         if (cachedResponse) {
           return cachedResponse;
         }
 
-        // ৩. ক্যাশে না থাকলে ব্যাকগ্রাউন্ডে নেটওয়ার্ক থেকে টানার চেষ্টা করবে
+        // ২. ক্যাশে না থাকলে ইন্টারনেট থেকে টেনে আনার চেষ্টা করবে
         return fetch(event.request).then((networkResponse) => {
-          // যদি ভ্যালিড রেসপন্স আসে, তবে ওটাকে ফিউচারের জন্য ক্যাশে সেভ করে রাখবে
+          // সাকসেসফুল রেসপন্স আসলে ফিউচারের জন্য ক্যাশে ব্যাকগ্রাউন্ডে সেভ করা
           if (networkResponse && networkResponse.status === 200) {
-            return caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, networkResponse.clone());
-              return networkResponse;
+            let responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
             });
           }
           return networkResponse;
         }).catch(() => {
-          // 🚨 [FALLBACK GUARD]: যদি ইন্টারনেট একবারে বন্ধ থাকে এবং নেটওয়ার্ক টোটাল ফেইল করে
-          if (event.request.headers.get('accept').includes('text/html')) {
-            // জোর করে আমাদের ক্যাশ করা মেইন ফাইলগুলো স্ক্রিনে ফিড করা
-            return caches.match('index.html') || caches.match('admin.html');
+          // 🎯 [THE CRITICAL CATCH FALLBACK]: ইন্টারনেট টোটাল বন্ধ থাকলে এই ক্যাচ ব্লক প্রমিজ রিজেক্ট হতে দেবে না
+          // রিকোয়েস্টের ইউআরএল চেক করে অফলাইন ডাইরেক্ট ফাইল ফিড করা
+          if (event.request.url.includes('admin.html')) {
+            return caches.match('admin.html');
           }
+          return caches.match('index.html') || caches.match('/');
         });
       })
     );
   }
 });
+
 
