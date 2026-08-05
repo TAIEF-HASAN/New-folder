@@ -53,23 +53,28 @@ self.addEventListener('fetch', (event) => {
         }
 
         // ২. ক্যাশে না থাকলে ইন্টারনেট থেকে টেনে আনার চেষ্টা করবে
+        // ====== service-worker.js এর fetch ব্লকের ভেতরের cache.put অংশটুকু এভাবে আপডেট করুন ======
+
         return fetch(event.request).then((networkResponse) => {
-          // সাকসেসফুল রেসপন্স আসলে ফিউচারের জন্য ক্যাশে ব্যাকগ্রাউন্ডে সেভ করা
           if (networkResponse && networkResponse.status === 200) {
             let responseClone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseClone);
-            });
+            
+            // 🎯 [THE EXTENSION SHIELD]: শুধুমাত্র http বা https প্রোটোকল হলে তবেই ক্যাশ সেভ হবে
+            const requestUrl = new URL(event.request.url);
+            if (requestUrl.protocol === 'http:' || requestUrl.protocol === 'https:') {
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(event.request, responseClone);
+              });
+            }
           }
           return networkResponse;
         }).catch(() => {
-          // 🎯 [THE CRITICAL CATCH FALLBACK]: ইন্টারনেট টোটাল বন্ধ থাকলে এই ক্যাচ ব্লক প্রমিজ রিজেক্ট হতে দেবে না
-          // রিকোয়েস্টের ইউআরএল চেক করে অফলাইন ডাইরেক্ট ফাইল ফিড করা
           if (event.request.url.includes('admin.html')) {
             return caches.match('admin.html');
           }
           return caches.match('index.html') || caches.match('/');
         });
+
       })
     );
   }

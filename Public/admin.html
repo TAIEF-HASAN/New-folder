@@ -361,33 +361,34 @@
 
     // 📡 ৬. ইন্টেলিজেন্ট ফল্ট ডিরেকশন ইঞ্জিন (চূড়ান্ত ডাইনামিক ও মাল্টি-ফিডার সংস্করণ)
     function startAdminFaultEngine() {
-    // প্রথমে ফায়ারবেস থেকে ফিডারের লাইভ লিস্ট রিড করা
+        const alertZone = document.getElementById('admin-alert-zone');
+        const liveTree = document.getElementById('admin-live-tree');
+
+        // 🎯 [OFFLINE PERSISTENT GUARD]: পেজ লোডের ১ম মিলি-সেকেন্ডে ফায়ারবেসের বাইরে স্বাধীনভাবে ক্যাশ চেক হবে
+        if (!navigator.onLine) {
+            const savedTreeCache = localStorage.getItem('kpm_last_live_tree_html');
+            const savedAlertCache = localStorage.getItem('kpm_last_alert_zone_text');
+            const savedAlertClass = localStorage.getItem('kpm_last_alert_zone_class');
+            
+            if (savedTreeCache && savedAlertCache && liveTree && alertZone) {
+                console.log("⚡ KPM Engine: Offline Engine Triggered. Loading standalone disk snapshot.");
+                liveTree.innerHTML = savedTreeCache;
+                alertZone.innerText = savedAlertCache + " (⚠️ অফলাইন মোড: সর্বশেষ সংরক্ষিত ডেটা স্ন্যাপশট)";
+                alertZone.className = savedAlertClass;
+                return; // কোড এখানেই থেমে যাবে, অফলাইনে ড্যাশবোর্ড ফ্রিজ বা ডিফল্ট টেক্সটে যাবে না!
+            }
+        }
+
+        // প্রথমে ফায়ারবেস থেকে ফিডারের লাইভ লিস্ট রিড করা (অনলাইন মোড)
         db.ref('kalkini_power_monitor/feeders').on('value', (feederSnap) => {
             const feedersData = feederSnap.val() || {};
             
             // ফায়ারবেস থেকে এলাকার লাইভ লিস্ট রিড করা
             db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
                 const areas = snapshot.val();
-                const alertZone = document.getElementById('admin-alert-zone');
-                const liveTree = document.getElementById('admin-live-tree');
                 if (!alertZone || !liveTree) return;
 
-                // 🎯 [OFFLINE TELEMETRY SNAPSHOT]: যদি পিসি অফলাইন থাকে এবং ফায়ারবেস থেকে ডেটা না আসে
-                if (!navigator.onLine || !areas) {
-                    const savedTreeCache = localStorage.getItem('kpm_last_live_tree_html');
-                    const savedAlertCache = localStorage.getItem('kpm_last_alert_zone_text');
-                    const savedAlertClass = localStorage.getItem('kpm_last_alert_zone_class');
-                    
-                    if (savedTreeCache && savedAlertCache) {
-                        console.log("⚡ KPM Engine: Network Offline. Serving last active node snapshot.");
-                        liveTree.innerHTML = savedTreeCache;
-                        alertZone.innerText = savedAlertCache + " (⚠️ অফলাইন মোড: ইন্টারনেট বিচ্ছিন্ন হওয়ার শেষ মুহূর্তের স্ন্যাপশট)";
-                        alertZone.className = savedAlertClass;
-                        return; // কোড এখানেই থেমে যাবে, অফলাইনে ড্যাশবোর্ড ফাঁকা বা ভেঙে যেতে দেবে না!
-                    }
-                }
-
-                // ইন্টারনেট অনলাইন থাকলে স্বাভাবিক ভিউ রিসেট ও রেন্ডারিং শুরু হবে
+                // অনলাইন থাকলে স্বাভাবিক ভিউ রিসেট ও রেন্ডারিং শুরু হবে
                 liveTree.innerHTML = ''; 
 
                 // ম্যাজিক পার্ট: স্ক্রিনের ওপরে ডাইনামিকালি ফিডার বাটন হেডার তৈরি করা
@@ -505,7 +506,8 @@
                 }
             });
         });
-    }
+    }   
+
 
 
 </script>                    
