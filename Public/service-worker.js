@@ -1,10 +1,10 @@
 const CACHE_NAME = 'kpm-app-cache-v1';
 const ASSETS_TO_CACHE = [
-  '/', // রুট পাথ
-  '/Public/',
-  '/Public/index.html',  // কাস্টমার মেইন ফাইল
-  '/Public/manifest.json',
-  '/Public/admin.html', // 🎯 [CRITICAL FIX]: অ্যাডমিন প্যানেল ফাইলটি অফলাইন ক্যাশ তালিকায় যুক্ত করা হলো    // অ্যাডমিন মেইন ফাইল
+  '/',                // মেইন রুট পাথ (Home Scope)
+  'index.html',       // 🎯 [FIXED PATH]: কাস্টমার মেইন ফাইল (কোনো /Public/ থাকবে না)
+  'admin.html',       // 🎯 [FIXED PATH]: অ্যাডমিন মেইন ফাইল 
+  'manifest.json',    // 🎯 [FIXED PATH]: ম্যানিফেস্ট ফাইল
+  //'tailwind.css',     // 🎯 [PERFECT]: আপনার লোকাল সিএসএস ব্যাকআপ ফাইল (একদম সঠিক আছে)
   'https://img.icons8.com/fluency/192/000000/electricity.png',
   'https://img.icons8.com/fluency/512/000000/electricity.png'
 ];
