@@ -1,10 +1,10 @@
-const CACHE_NAME = 'kpm-app-cache-v1';
+const CACHE_NAME = 'kpm-app-cache-ultimate-v1';
 const ASSETS_TO_CACHE = [
   '/',                // মেইন রুট পাথ (Home Scope)
   'index.html',       // 🎯 [FIXED PATH]: কাস্টমার মেইন ফাইল (কোনো /Public/ থাকবে না)
   'admin.html',       // 🎯 [FIXED PATH]: অ্যাডমিন মেইন ফাইল 
   'manifest.json',    // 🎯 [FIXED PATH]: ম্যানিফেস্ট ফাইল
-  'tailwind.js',     // 🎯 [PERFECT]: লোকাল সিএসএস ব্যাকআপ ফাইল (একদম সঠিক আছে)
+  'tailwind.css',     // 🎯 [PERFECT]: লোকাল সিএসএস ব্যাকআপ ফাইল (একদম সঠিক আছে)
   'https://img.icons8.com/fluency/192/000000/electricity.png',
   'https://img.icons8.com/fluency/512/000000/electricity.png'
 ];
