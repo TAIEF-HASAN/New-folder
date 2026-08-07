@@ -9,21 +9,15 @@
         <link rel="manifest" href="manifest.json">
         <meta name="theme-color" content="#f59e0b">
 
-        <!-- ❌ এই একটু আগে যোগ করা লোকাল লাইনটি সম্পূর্ণ মুছে দিন: -->
-        <!-- <link rel="stylesheet" href="css/tailwind.css"> -->
+        <!-- 🎯 আপনার সেই আসল এবং জ্যান্ত অনলাইন লাইভ সিডিএন লিংক (যা আপনার ডার্ক থিম ও ফর্মকে ১০০% নিখুঁত রাখবে) -->
+        <script src="https://cdn.tailwindcss.com"></script>
 
-        <!-- 🎯 পরিবর্তে আপনার সেই অরিজিনাল ও নিখুঁত স্ক্রিপ্ট লাইনটি আবার বসিয়ে দিন: -->
-        
-        <!-- ❌ ওপরের পুরোনো সিডিএন বা লিংক ট্যাগগুলো সম্পূর্ণ মুছে দিন -->
-
-        <!-- 🎯 [THE ULTIMATE PWA SHIELD]: আপনার লোকাল টেইলউইন্ড ইঞ্জিনটি লোড হবে -->
-        <!-- <script src="tailwind.js"></script> -->
-
-        <!-- 🎯 [THE CORE EXCLUSIVE SHIELD]: আপনার লোকাল সিএসএস ফাইলটি এক টানে লোড হবে -->
-        <link rel="stylesheet" href="tailwind.css">
+        <!-- 🛡️ ব্যাকআপ হিসেবে আপনার তৈরি করা সেই 'tailwind.js' ফাইলটি ঠিক তার নিচের লাইনে জুড়ে দিন -->
+        <script src="tailwind.js"></script>
 
 
-        <!-- <script src="https://cdn.tailwindcss.com" defer></script> -->
+
+        <!--  -->
         
         <!-- Firebase SDK (নিখুঁত আছে) -->
         <script src="https://www.gstatic.com/firebasejs/12.12.1/firebase-app-compat.js"></script>
@@ -382,7 +376,7 @@
             if (savedTreeCache && savedAlertCache && liveTree && alertZone) {
                 console.log("⚡ KPM Engine: Offline Engine Triggered. Loading standalone disk snapshot.");
                 liveTree.innerHTML = savedTreeCache;
-                alertZone.innerText = savedAlertCache + " (⚠️ অফলাইন মোড: সর্বশেষ সংরক্ষিত ডেটা স্ন্যাপশট)";
+                alertZone.innerText = (savedAlertCache && savedAlertCache !== "undefined" && savedAlertCache !== "null" ? savedAlertCache : "কালকিনির সকল ফিডার এবং সাব-স্টেশন স্বাভাবিক আছে।") + " (⚠️ অফলাইন মোড)";
                 alertZone.className = savedAlertClass;
                 return; // কোড এখানেই থেমে যাবে, অফলাইনে ড্যাশবোর্ড ফ্রিজ বা ডিফল্ট টেক্সটে যাবে না!
             }
