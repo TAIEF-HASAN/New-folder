@@ -331,32 +331,6 @@
             document.addEventListener('DOMContentLoaded', checkExistingUser);
             window.addEventListener('pageshow', checkExistingUser);
 
-        
-
-
-            // --- ১. বর্তমান স্ট্যাটাস আপডেট লজিক ---
-            db.ref('current_status').on('value', (snap) => {
-                const data = snap.val();
-                if (data) {
-                    // last_update চেক করা হয়েছে যাতে undefined না আসে
-                    const displayTime = data.last_update || data.time || "অজানা";
-                    
-                    document.getElementById('current-status').innerText = data.status;
-                    document.getElementById('status-time').innerText = `শেষ আপডেট: ${displayTime}`;
-                    
-                    // কার্ডের ব্যাকগ্রাউন্ড ও টেক্সট কালার পরিবর্তন
-                    const card = document.getElementById('status-card');
-                    const statusText = document.getElementById('current-status');
-                    
-                    if (data.status === "Online") {
-                        card.className = "p-8 rounded-2xl shadow-md text-center bg-green-50 border-2 border-green-200";
-                        statusText.className = "text-5xl font-black text-green-600";
-                    } else {
-                        card.className = "p-8 rounded-2xl shadow-md text-center bg-red-50 border-2 border-red-200";
-                        statusText.className = "text-5xl font-black text-red-600";
-                    }
-                }
-            });
 
             // --- হার্টবিট চেক লজিক (বিদ্যুৎ গেলে দ্রুত অফলাইন দেখানোর জন্য) ---
             setInterval(() => {
@@ -710,64 +684,133 @@
             });
 
             // ১. মডিউল ৩-এর মূল ফাংশন: গ্রাহকের নিজস্ব এলাকার ডেটা ট্র্যাক করা
-            function loadClientDashboard() {
-                const savedAreaId = localStorage.getItem('kpm_user_area');
-                if (!savedAreaId) return;
+            // 🎯 [KPM ENTERPRISE RADAR ENGINE]: সম্পূর্ণ ফাংশনটি এখানে রিবিল্ড করা হলো
+            function startAdminFaultEngine() {
+                const alertZone = document.getElementById('admin-alert-zone');
+                const liveTree = document.getElementById('admin-live-tree');
 
-                console.log("Loading Dashboard for Area:", savedAreaId);
-
-                // 🌐 [OFFLINE EMERGENCY RESILIENCE]: ইন্টারনেট বন্ধ থাকলে ফায়ারবেস অন রিকোয়েস্ট স্কিপ করবে
+                // [OFFLINE PERSISTENT GUARD]
                 if (!navigator.onLine) {
-                    console.log("⚡ KPM: Offline Blackout Detected. Rendering interface via local cache.");
-                    
-                    // অফলাইন মোডে স্ক্রিনের ডিফল্ট লোডিং টেক্সট পরিবর্তন করে দেওয়া
-                    const currentStatus = document.getElementById('current-status');
-                    const statusTime = document.getElementById('status-time');
-                    
-                    if (currentStatus) currentStatus.innerText = "Offline মোড";
-                    if (statusTime) statusTime.innerText = "⚠️ ইন্টারনেট সংযোগ বিচ্ছিন্ন। লোকাল ক্যাশ ভিউ সচল।";
-                    return; // কোড এখানেই ব্রেক হয়ে যাবে, অফলাইনে ফায়ারবেসকে আর ডিস্টার্ব করবে না
+                    const savedTreeCache = localStorage.getItem('kpm_last_live_tree_html');
+                    const savedAlertCache = localStorage.getItem('kpm_last_alert_zone_text');
+                    const savedAlertClass = localStorage.getItem('kpm_last_alert_zone_class');
+                    if (savedTreeCache && savedAlertCache && liveTree && alertZone) {
+                        console.log("KPM Engine: Offline Engine Triggered. Loading standalone disk snapshot.");
+                        liveTree.innerHTML = savedTreeCache;
+                        alertZone.innerText = (savedAlertCache && savedAlertCache !== "undefined" && savedAlertCache !== "null" ? savedAlertCache : "কালকিনির সকল ফিডার এবং সাব-সেকশন স্বাভাবিক আছে।") + " (অফলাইন মোড)";
+                        alertZone.className = savedAlertClass;
+                        return;
+                    }
                 }
 
-                // ফায়ারবেস থেকে শুধুমাত্র এই নির্দিষ্ট এলাকার লাইভ ডেটা রিড করা
-                db.ref(`kalkini_power_monitor/areas/${savedAreaId}`).on('value', (snapshot) => {
-                    const areaData = snapshot.val();
-                    if (!areaData) return;
+                // ১. প্রথমে ফায়ারবেস থেকে ফিডারের লাইভ ডাটা রিড করলাম
+                db.ref('kalkini_power_monitor/feeders').on('value', (feederSnap) => {
+                    const feedersData = feederSnap.val() || {};
 
-                    // ৫.১ টাস্ক: গ্রাহকের স্ক্রিনের জন্য ডেটা মাস্কিং (Data Masking)
-                    let displayStatus = "অনলাইন";
-                    let cardBgClass = "bg-gradient-to-br from-green-50 to-emerald-100 border-emerald-200 text-emerald-800 shadow-emerald-100";
-                    let statusColorClass = "text-emerald-600";
+                    // ২. মেইন এরিয়া লুপের ভেতর সরাসরি চিপের ডাটা সিনক্রোনাসলি ইন্টারসেপ্ট করলাম
+                    db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
+                        const areas = snapshot.val() || {};
 
-                    if (areaData.status === "Offline") {
-                        displayStatus = "লোডশেডিং";
-                        cardBgClass = "bg-gradient-to-br from-red-50 to-rose-100 border-rose-200 text-rose-800 shadow-rose-100";
-                        statusColorClass = "text-rose-600";
-                    }
+                        // ⚡ [THE EXACT PLACEMENT LATCH]: পাঙ্গাশিয়া চিপের ডাটা ঠিক রেন্ডারিংয়ের আগে বাইন্ড করলাম
+                        if (areas && areas.area_1877) {
+                            if (!areas.area_1877.nodes) areas.area_1877.nodes = {};
+                            
+                            if (!areas.area_1877.nodes.node_2_460) {
+                                areas.area_1877.nodes.node_2_460 = { status: "Offline" };
+                            }
+                            
+                            let liveStatus = areas.area_1877.nodes.node_2_460;
+                            let currentStatus = typeof liveStatus === 'object' ? (liveStatus.status || "Offline") : liveStatus;
 
-                    // আপনার বিদ্যমান ID গুলো ধরে রিয়েল-টাইমে UI আপডেট করা (কোনো HTML চেঞ্জ ছাড়া)
-                    const statusCard = document.getElementById('status-card');
-                    const currentStatus = document.getElementById('current-status');
-                    const statusTime = document.getElementById('status-time');
+                            areas.area_1877.nodes.node_2_460 = {
+                                name: "পাঙ্গাশিয়া",
+                                status: currentStatus,
+                                sequence: 1
+                            };
+                        }
 
-                    if (statusCard) {
-                        // কার্ডের ব্যাকগ্রাউন্ড ও বর্ডার ডাইনামিকালি চেঞ্জ হবে
-                        statusCard.className = `p-6 md:p-8 rounded-3xl shadow-lg text-center border transition-all duration-500 mb-6 ${cardBgClass}`;
-                    }
-                    if (currentStatus) {
-                        // Loading... লেখার জায়গায় "অনলাইন" বা "লোডশেডিং" বসবে
-                        currentStatus.innerText = displayStatus;
-                        currentStatus.className = `text-5xl md:text-6xl font-black uppercase tracking-tighter ${statusColorClass}`;
-                    }
-                    if (statusTime) {
-                        // সর্বশেষ পিং বা টাইমস্ট্যাম্প আপডেট হবে
-                        statusTime.innerText = `সর্বশেষ আপডেট: ${areaData.last_ping} | এলাকা: ${areaData.name}`;
-                    }
+                        // ৩. আইডি চেক ও স্ক্রিন ক্যাশ ক্লিয়ার করা (এবার এটি একদম পারফেক্ট অর্ডারে আছে!)
+                        if (!alertZone || !liveTree) return;
+                        liveTree.innerHTML = ''; 
 
-                    // ২. এই সুনির্দিষ্ট এলাকার ওপর ভিত্তি করে আপনার চার্ট এবং টেবিল রেন্ডার করা
-                    updateClientChartsAndTable(savedAreaId);
+                        // ৪. মেইন হেডার মডিউল রেন্ডারিং
+                        let headerHTML = `<div class="text-xs font-bold text-slate-400 mb-2 border-b border-slate-800 pb-2">📂 মেইন ফিডার গেটওয়ে সুইচের অবস্থা:</div>
+                        <div class="grid grid-cols-2 gap-2 mb-4">`;
+                        Object.keys(feedersData).forEach((fId) => {
+                            if (!masterSwitches[fId]) masterSwitches[fId] = feedersData[fId].status || "ON";
+                            let btnColor = masterSwitches[fId] === "ON" ? "bg-green-600" : "bg-amber-600";
+                            headerHTML += `
+                            <button onclick="toggleMasterSwitch('${fId}')" class="px-2 py-1.5 ${btnColor} text-[11px] font-black rounded-xl text-left truncate transition-all active:scale-95">
+                            ${masterSwitches[fId] === "ON" ? "🟢" : "🟠"} ${feedersData[fId].name}: ${masterSwitches[fId]}
+                            </button>`;
+                        });
+                        headerHTML += `</div>`;
+                        liveTree.innerHTML = headerHTML;
+                        
+                        let faultDetected = false;
+
+                        // ৫. ডাইনামিক লাইভ এরিয়া গ্রিড ট্রি রেন্ডারিং লুপ
+                        Object.keys(areas).forEach((areaId) => {
+                            const area = areas[areaId];
+                            let areaHasFault = false;
+                            let nodeLinesHTML = '';
+
+                            if (area.nodes) {
+                                Object.keys(area.nodes).forEach((nodeId) => {
+                                    const node = area.nodes[nodeId];
+                                    let isOnline = node.status === 'Online' || node.status === 'NORMAL' || node.status === 'ONLINE';
+                                    
+                                    if (!isOnline) {
+                                        areaHasFault = true;
+                                        faultDetected = true;
+                                    }
+
+                                    nodeLinesHTML += `
+                                    <div class="flex items-center justify-between text-xs p-1.5 rounded-lg ${isOnline ? 'text-slate-300' : 'text-rose-400 bg-rose-950/30 font-bold'}">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500 animate-pulse' : 'bg-red-500'}"></span>
+                                            <span>${node.sequence || ''} ${node.name || nodeId}</span>
+                                        </div>
+                                        <span class="text-[10px] uppercase font-mono tracking-wider">${isOnline ? 'Online' : 'Offline'}</span>
+                                    </div>`;
+                                });
+                            }
+
+                            let areaCardColor = areaHasFault ? "border-rose-900 bg-rose-950/20 text-rose-200" : "border-slate-800 bg-slate-900/50 text-slate-300";
+                            
+                            let areaCardHTML = `
+                            <div class="border rounded-2xl p-4 transition-all duration-300 ${areaCardColor}">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-sm font-black tracking-tight">${area.name || areaId}</h3>
+                                    <span class="text-[10px] px-2 py-0.5 rounded-full font-bold ${areaHasFault ? 'bg-rose-500/20 text-rose-400' : 'bg-green-500/20 text-green-400'}">
+                                        ${areaHasFault ? 'FALLBACK' : 'STABLE'}
+                                    </span>
+                                </div>
+                                <div class="space-y-1">${nodeLinesHTML}</div>
+                            </div>`;
+
+                            liveTree.innerHTML += areaCardHTML;
+                        });
+
+                        // ৬. রিয়েল-টাইম ফল্ট অ্যালার্ট ব্যানার কন্ট্রোল
+                        if (faultDetected) {
+                            alertZone.innerText = "ALERT: কালকিনি এর মেইন ব্রেকার ট্রিপ করেছে! (সম্ভavy জোন: পাঙ্গাশিয়া)";
+                            alertZone.className = "p-4 bg-rose-600 text-white text-sm font-black rounded-2xl text-center shadow-lg uppercase tracking-wider animate-bounce border-2 border-white/20";
+                            triggerAudioAlert();
+                        } else {
+                            alertZone.innerText = "কালকিনির সকল ফিডার এবং সাব-সেকশন স্বাভাবিক আছে";
+                            alertZone.className = "p-4 bg-emerald-600 text-white text-sm font-black rounded-2xl text-center shadow-lg tracking-wide border-2 border-white/10";
+                            stopAudioAlert();
+                        }
+
+                        // লোকাল ডিস্ক স্ন্যাপশট সেভ করলাম (অফলাইন ব্যাকআপ)
+                        localStorage.setItem('kpm_last_live_tree_html', liveTree.innerHTML);
+                        localStorage.setItem('kpm_last_alert_zone_text', alertZone.innerText);
+                        localStorage.setItem('kpm_last_alert_zone_class', alertZone.className);
+                    });
                 });
             }
+
 
             // ২. চার্ট ও টেবিলের জন্য নির্দিষ্ট এলাকার হিস্ট্রি ফিল্টার করা
             function updateClientChartsAndTable(areaId) {
