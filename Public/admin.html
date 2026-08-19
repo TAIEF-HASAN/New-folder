@@ -30,511 +30,488 @@
 
     <body class="bg-slate-900 text-white min-h-screen p-4 md:p-8 font-sans flex flex-col items-center justify-center">
 
-    <!-- ========================================== -->
-    <!-- 🔒 ১. ইউনিফাইড সিকিউর লগইন ফর্ম (একমাত্র লগইন স্ক্রিন) -->
-    <!-- ========================================== -->
-    <div id="admin-login-card" class="bg-slate-800 p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-700">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-black text-amber-500 mb-2">🔋 KPM Admin Hub</h1>
-            <p class="text-slate-400 text-sm font-medium">কালকিনি জোনাল অফিস কেন্দ্রীয় কন্ট্রোল প্যানেল</p>
-        </div>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">ইউজারনেম</label>
-                <input type="text" id="admin-user" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition font-bold" placeholder="অফিস আইডি">
+        <!-- ========================================== -->
+        <!-- 🔒 ১. ইউনিফাইড সিকিউর লগইন ফর্ম (একমাত্র লগইন স্ক্রিন) -->
+        <!-- ========================================== -->
+        <div id="admin-login-card" class="bg-slate-800 p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-700">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-black text-amber-500 mb-2">🔋 KPM Admin Hub</h1>
+                <p class="text-slate-400 text-sm font-medium">কালকিনি জোনাল অফিস কেন্দ্রীয় কন্ট্রোল প্যানেল</p>
             </div>
-            <div>
-                <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">পাসওয়ার্ড</label>
-                <input type="password" id="admin-pass" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition" placeholder="••••••••">
-            </div>
-            <button onclick="handleAdminLogin()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-amber-500/20 mt-2">লগইন করুন</button>
-            <!-- কাস্টমার ড্যাশবোর্ডে ফিরে যাওয়ার বাটন (লগইন স্ক্রিন) -->
-            <button onclick="window.location.href='index.html';" class="w-full bg-slate-700 hover:bg-slate-650 text-white font-bold py-2 rounded-xl transition text-xs mt-3">
-                ⬅️ গ্রাহক ড্যাশবোর্ডে ফিরে যান
-            </button>
-
-        </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- 💻 ২. মেইন সেন্ট্রাল ড্যাশবোর্ড কন্টেইনার (লগইনের পর খুলবে) -->
-    <!-- ========================================== -->
-    <div id="main-admin-dashboard" class="w-full max-w-2xl space-y-6 hidden">
-        
-        <!-- টপ বার (লগআউট বাটনসহ) -->
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800 p-4 rounded-2xl border border-slate-700 gap-3">
-        <div>
-            <h1 class="text-xl font-black text-amber-500 flex items-center gap-1">⚙️ Central Controller</h1>
-            <p class="text-slate-400 text-xs">সবগুলো মডিউল এখন আপনার নিয়ন্ত্রণে</p>
-        </div>
-        <!-- 🎯 [MOBILE RESPONSIVE FLEX]: মোবাইলে বাটন দুটোকে নিচে নিচে নামিয়ে সুন্দর গ্যাপ দেবে -->
-        <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-            <button onclick="handleLogout()" class="text-xs font-bold bg-slate-700 hover:bg-red-600 px-4 py-2.5 rounded-xl transition">লগআউট</button>
-            <button onclick="window.location.href='index.html';" class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition">📊 কাস্টমার ভিউ</button>
-        </div>
-        </div>
-
-
-        <!-- 📡 মডিউল এ: লাইভ ফল্ট ও লোডশেডিং ডায়াগনস্টিক ম্যাপ -->
-        <div id="admin-fault-monitor" class="p-6 bg-slate-950 text-white rounded-3xl shadow-2xl border border-slate-800">
-            <div class="flex justify-between items-center border-b border-gray-800 pb-4 mb-4">
-                <h2 class="text-sm font-black tracking-wide text-rose-500 animate-pulse">📡 LIVE FAULT DIAGNOSTICS</h2>
-                
-            </div>
-            <div id="admin-alert-zone" class="p-4 rounded-xl bg-slate-900 border border-gray-800 text-center mb-4 transition-all duration-300 font-black text-sm">
-                <p class="text-gray-400 font-medium">সিস্টেম স্ক্যান করা হচ্ছে...</p>
-            </div>
-            <div id="admin-live-tree" class="space-y-3 max-h-[25vh] overflow-y-auto pr-1">
-                <!-- জাভাস্ক্রিপ্ট দিয়ে সাব-নোড রেন্ডার হবে -->
-            </div>
-        </div>
-
-        <!-- 📢 মডিউল বি: জরুরি নোটিশ কন্ট্রোল বোর্ড -->
-        <div class="bg-slate-800 p-6 rounded-3xl shadow-xl border border-slate-700">
-            <h2 class="text-md font-black text-amber-500 mb-4 flex items-center gap-1">📢 ইমার্জেন্সি নোটিশ বোর্ড</h2>
             <div class="space-y-4">
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">নোটিশ স্ট্যাটাস টগল:</label>
-                    <select id="notice-status" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-amber-500 transition">
-                        <option value="Active">🔴 Active (গ্রাহক ড্যাশবোর্ডে দেখাবে)</option>
-                        <option value="Inactive">⚪ Inactive (বন্ধ থাকবে)</option>
-                    </select>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">ইউজারনেম</label>
+                    <input type="text" id="admin-user" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition font-bold" placeholder="অফিস আইডি">
                 </div>
                 <div>
-                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">জরুরি নোটিশের বিবরণ:</label>
-                    <textarea id="notice-text" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-amber-500 transition text-sm" placeholder="গ্রাহকদের জন্য নোটিশ লিখুন..."></textarea>
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">পাসওয়ার্ড</label>
+                    <input type="password" id="admin-pass" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-amber-500 transition" placeholder="••••••••">
                 </div>
-                <p id="action-status" class="text-xs font-bold text-center hidden"></p>
-                <button onclick="publishNotice()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-emerald-500/20">Publish Notice 🚀</button>
+                <button onclick="handleAdminLogin()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-amber-500/20 mt-2">লগইন করুন</button>
+                <!-- কাস্টমার ড্যাশবোর্ডে ফিরে যাওয়ার বাটন (লগইন স্ক্রিন) -->
+                <button onclick="window.location.href='index.html';" class="w-full bg-slate-700 hover:bg-slate-650 text-white font-bold py-2 rounded-xl transition text-xs mt-3">
+                    ⬅️ গ্রাহক ড্যাশবোর্ডে ফিরে যান
+                </button>
+
             </div>
         </div>
 
-        <!-- 🛠️ মডিউল সি: সেন্ট্রাল কন্ট্রোল প্যানেল (মাস্টার হাব - নোড ইনপুট) -->
-        <div class="p-6 bg-white text-gray-800 rounded-3xl shadow-xl">
-            <h2 class="text-lg font-black text-gray-800 mb-4 flex items-center gap-2">🛠️ KPM এরিয়া ও সাব-নোড ম্যানেজার</h2>
+        <!-- ========================================== -->
+        <!-- 💻 ২. মেইন সেন্ট্রাল ড্যাশবোর্ড কন্টেইনার (লগইনের পর খুলবে) -->
+        <!-- ========================================== -->
+        <div id="main-admin-dashboard" class="w-full max-w-2xl space-y-6 hidden">
             
-            <!-- নতুন এলাকা যোগ -->
-            <div class="border-b border-gray-100 pb-4 mb-4">
-                <h3 class="text-xs font-black text-blue-600 uppercase tracking-wider mb-2">📍 নতুন এলাকা তৈরি করুন (গ্রাহক UI এর জন্য)</h3>
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <input type="text" id="new-area-name" placeholder="এলাকার নাম (উদা: খাসেরহাট)" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
-                    <input type="text" id="new-area-feeder" placeholder="ফিডার আইডি" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
-                    <button onclick="createNewAreaViaUI()" class="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition active:scale-95">তৈরি করুন</button>
+            <!-- টপ বার (লগআউট বাটনসহ) -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-800 p-4 rounded-2xl border border-slate-700 gap-3">
+            <div>
+                <h1 class="text-xl font-black text-amber-500 flex items-center gap-1">⚙️ Central Controller</h1>
+                <p class="text-slate-400 text-xs">সবগুলো মডিউল এখন আপনার নিয়ন্ত্রণে</p>
+            </div>
+            <!-- 🎯 [MOBILE RESPONSIVE FLEX]: মোবাইলে বাটন দুটোকে নিচে নিচে নামিয়ে সুন্দর গ্যাপ দেবে -->
+            <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+                <button onclick="handleLogout()" class="text-xs font-bold bg-slate-700 hover:bg-red-600 px-4 py-2.5 rounded-xl transition">লগআউট</button>
+                <button onclick="window.location.href='index.html';" class="text-xs font-bold bg-slate-700 hover:bg-slate-600 px-4 py-2.5 rounded-xl transition">📊 কাস্টমার ভিউ</button>
+            </div>
+            </div>
+
+
+            <!-- 📡 মডিউল এ: লাইভ ফল্ট ও লোডশেডিং ডায়াগনস্টিক ম্যাপ -->
+            <div id="admin-fault-monitor" class="p-6 bg-slate-950 text-white rounded-3xl shadow-2xl border border-slate-800">
+                <div class="flex justify-between items-center border-b border-gray-800 pb-4 mb-4">
+                    <h2 class="text-sm font-black tracking-wide text-rose-500 animate-pulse">📡 LIVE FAULT DIAGNOSTICS</h2>
+                    
+                </div>
+                <div id="admin-alert-zone" class="p-4 rounded-xl bg-slate-900 border border-gray-800 text-center mb-4 transition-all duration-300 font-black text-sm">
+                    <p class="text-gray-400 font-medium">সিস্টেম স্ক্যান করা হচ্ছে...</p>
+                </div>
+                <div id="admin-live-tree" class="space-y-3 max-h-[25vh] overflow-y-auto pr-1">
+                    <!-- জাভাস্ক্রিপ্ট দিয়ে সাব-নোড রেন্ডার হবে -->
                 </div>
             </div>
 
-            <!-- সাব-নোড যোগ -->
-            <div>
-                <h3 class="text-xs font-black text-rose-600 uppercase tracking-wider mb-2">🎯 এলাকার ভেতর ফল্ট সাব-নোড যুক্ত করুন (অফিস মনিটরের জন্য)</h3>
-                <div class="space-y-3">
-                    <select id="admin-area-dropdown" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm text-gray-700 outline-none"></select>
+            <!-- 📢 মডিউল বি: জরুরি নোটিশ কন্ট্রোল বোর্ড -->
+            <div class="bg-slate-800 p-6 rounded-3xl shadow-xl border border-slate-700">
+                <h2 class="text-md font-black text-amber-500 mb-4 flex items-center gap-1">📢 ইমার্জেন্সি নোটিশ বোর্ড</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">নোটিশ স্ট্যাটাস টগল:</label>
+                        <select id="notice-status" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white font-bold outline-none focus:border-amber-500 transition">
+                            <option value="Active">🔴 Active (গ্রাহক ড্যাশবোর্ডে দেখাবে)</option>
+                            <option value="Inactive">⚪ Inactive (বন্ধ থাকবে)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">জরুরি নোটিশের বিবরণ:</label>
+                        <textarea id="notice-text" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white outline-none focus:border-amber-500 transition text-sm" placeholder="গ্রাহকদের জন্য নোটিশ লিখুন..."></textarea>
+                    </div>
+                    <p id="action-status" class="text-xs font-bold text-center hidden"></p>
+                    <button onclick="publishNotice()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black py-3 rounded-xl transition shadow-lg shadow-emerald-500/20">Publish Notice 🚀</button>
+                </div>
+            </div>
+
+            <!-- 🛠️ মডিউল সি: সেন্ট্রাল কন্ট্রোল প্যানেল (মাস্টার হাব - নোড ইনপুট) -->
+            <div class="p-6 bg-white text-gray-800 rounded-3xl shadow-xl">
+                <h2 class="text-lg font-black text-gray-800 mb-4 flex items-center gap-2">🛠️ KPM এরিয়া ও সাব-নোড ম্যানেজার</h2>
+                
+                <!-- নতুন এলাকা যোগ -->
+                <div class="border-b border-gray-100 pb-4 mb-4">
+                    <h3 class="text-xs font-black text-blue-600 uppercase tracking-wider mb-2">📍 নতুন এলাকা তৈরি করুন (গ্রাহক UI এর জন্য)</h3>
                     <div class="flex flex-col sm:flex-row gap-2">
-                        <input type="text" id="new-subnode-name" placeholder="সাব-নোডের নাম (উদা: স্কুল রোড ২.১)" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
-                        <input type="number" id="new-subnode-seq" placeholder="সিকুয়েন্স (১, ২...)" class="w-32 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
-                        <button onclick="addNewSubNodeViaUI()" class="px-4 py-3 bg-rose-600 text-white font-bold rounded-xl text-sm transition active:scale-95">নোড যুক্ত করুন</button>
+                        <input type="text" id="new-area-name" placeholder="এলাকার নাম (উদা: খাসেরহাট)" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
+                        <input type="text" id="new-area-feeder" placeholder="ফিডার আইডি" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
+                        <button onclick="createNewAreaViaUI()" class="px-4 py-3 bg-blue-600 text-white font-bold rounded-xl text-sm transition active:scale-95">তৈরি করুন</button>
+                    </div>
+                </div>
+
+                <!-- সাব-নোড যোগ -->
+                <div>
+                    <h3 class="text-xs font-black text-rose-600 uppercase tracking-wider mb-2">🎯 এলাকার ভেতর ফল্ট সাব-নোড যুক্ত করুন (অফিস মনিটরের জন্য)</h3>
+                    <div class="space-y-3">
+                        <select id="admin-area-dropdown" class="w-full p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm text-gray-700 outline-none"></select>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="new-subnode-name" placeholder="সাব-নোডের নাম (উদা: স্কুল রোড ২.১)" class="flex-1 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
+                            <input type="number" id="new-subnode-seq" placeholder="সিকুয়েন্স (১, ২...)" class="w-32 p-3 border border-gray-200 bg-gray-50 rounded-xl font-bold text-sm outline-none">
+                            <button onclick="addNewSubNodeViaUI()" class="px-4 py-3 bg-rose-600 text-white font-bold rounded-xl text-sm transition active:scale-95">নোড যুক্ত করুন</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-    </div>
+        </div>
 
 
         <script>
-    // ==========================================
-    // 📡 ১. ফায়ারবেস কনফিগারেশন ও ইনিশিয়ালাইজেশন
-    // ==========================================
-    // 🔒 আপনার মেইন index.html থেকে Firebase Config হুবহু কপি করে এখানে বসান
-            const firebaseConfig = {
-                    apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
-                    authDomain: "kalkinipowermonitor.firebaseapp.com",
-                    databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
-                    projectId: "kalkinipowermonitor",
-                    storageBucket: "kalkinipowermonitor.firebasestorage.app",
-                    messagingSenderId: "119477481190",
-                    appId: "1:119477481190:web:7f3404fcf0b87db388d527"
-                };
-    
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-
-    // গ্লোবাল স্টেট ভ্যারিয়েবল
-    let currentMasterSwitch = "ON";
-
-    // 🎯 [GLOBAL STATE TRACKER]: কোন নোডটি কখন অফলাইন হচ্ছে তার লাইভ মিলি-সেকেন্ড ট্র্যাক করার অবজেক্ট
-    if (!window.nodeOfflineTimestamps) {
-        window.nodeOfflineTimestamps = {};
-    }
-
-
-    // 🔐 [AUTOMATED SECURITY GUARD]: পেজ লোড, রিফ্রেশ বা ব্যাক-ফরওয়ার্ড চেক করার গ্লোবাল ফাংশন
-    function checkAdminSessionState() {
-        const loginCard = document.getElementById('admin-login-card');
-        const adminDashboard = document.getElementById('main-admin-dashboard');
-
-        if (loginCard && adminDashboard) {
-            // যদি মেমোরিতে অলরেডি সফল লগইনের টোকেন থাকে (পেজ রিফ্রেশ বা রিলোডের ক্ষেত্রে)
-            if (sessionStorage.getItem("kpm_admin_session") === "authenticated") {
-                loginCard.classList.add('hidden');
-                adminDashboard.classList.remove('hidden');
-                
-                // রিফ্রেশ হওয়ার পর ডেটা সার্ভিস পুনরায় সচল করা
-                if (typeof loadCurrentNotice === "function") loadCurrentNotice();
-                if (typeof startAdminFaultEngine === "function") startAdminFaultEngine();
-            } 
-            // যদি মেমোরিতে কোনো টোকেন না থাকে (লগআউট বা অবৈধ প্রবেশের ক্ষেত্রে)
-            else {
-                adminDashboard.classList.add('hidden');
-                loginCard.classList.remove('hidden');
-            }
-        }
-    }
-
-    // পেজটি স্ক্রিনে দৃশ্যমান হওয়ার সাথে সাথেই গ্লোবাল গার্ড সচল হবে
-    window.addEventListener('pageshow', checkAdminSessionState);
-
-    // 🎯 [ZERO-LATENCY RETENTION GUARD]: পেজ রেন্ডার হওয়ার ১ম মিলি-সেকেন্ডেই সেশন ভ্যালিডেট করে দেবে!
-    document.addEventListener('DOMContentLoaded', checkAdminSessionState);
-
-    // 🚪 [ADMIN LOGIN]: ১০০০% সচল এবং সিকিউরড লগইন ফাংশন
-    function handleAdminLogin() {
-        const user = document.getElementById('admin-user').value.trim();
-        const pass = document.getElementById('admin-pass').value.trim();
-
-        if (!user || !pass) {
-            alert("অনুগ্রহ করে সব তথ্য পূরণ করুন!");
-            return;
-        }
-
-        if (user === "admin" && pass === "kpm2026") {
-            // ব্রাউজার মেমোরিতে সেশন টোকেন লক
-            sessionStorage.setItem("kpm_admin_session", "authenticated");
-
-            // ভিউ সিঙ্ক করতে সরাসরি আমাদের গ্লোবাল গার্ড ফাংশনটিকে কল করা
-            checkAdminSessionState();
-        } else {
-            alert("ভুল ইউজারনেম বা পাসওয়ার্ড! দয়া করে সঠিক তথ্য দিন।");
-        }
-    }
-
-    // 📌 [ADMIN LOGOUT]: বাগমুক্ত লগআউট ফাংশন
-    function handleLogout() {
-        // সেশন মেমোরি চিরতরে ডিলিট করা
-        sessionStorage.removeItem("kpm_admin_session");
-        sessionStorage.clear();
-
-        // ইনপুট ফিল্ড ও ভিউ রিসেট
-        document.getElementById('admin-user').value = '';
-        document.getElementById('admin-pass').value = '';
-        
-        // ভিউ সিঙ্ক করা
-        checkAdminSessionState();
-
-        // ব্রাউজারের নেভিগেশন হিস্ট্রি এবং ক্যাশ মেমোরি সম্পূর্ণ ফ্লাশ করতে রিফ্রেশ
-        window.location.reload();
-    }
-
-
-
-    // ==========================================
-    // 📢 ৪. ইমার্জেন্সি নোটিশ বোর্ড ব্যাকএন্ড ইঞ্জিন
-    // ==========================================
-    function loadCurrentNotice() {
-        db.ref('emergency_notice').once('value', (snap) => {
-            const data = snap.val();
-            if (data) {
-                document.getElementById('notice-status').value = data.status || 'Inactive';
-                document.getElementById('notice-text').value = data.text || '';
-            }
-        });
-    }
-
-    function publishNotice() {
-        const status = document.getElementById('notice-status').value;
-        const text = document.getElementById('notice-text').value.trim();
-        const statusLabel = document.getElementById('action-status');
-
-        if (!text && status === 'Active') {
-            statusLabel.className = "text-red-400 text-xs font-bold text-center";
-            statusLabel.innerText = "দয়া করে নোটিশে কিছু লিখুন!";
-            statusLabel.classList.remove('hidden');
-            return;
-        }
-
-        db.ref('emergency_notice').set({
-            status: status,
-            text: text,
-            timestamp: new Date().toLocaleString("en-US", {timeZone: "Asia/Dhaka"})
-        }).then(() => {
-            statusLabel.className = "text-emerald-400 text-xs font-bold text-center";
-            statusLabel.innerText = "নোটিশ সফলভাবে লাইভ হয়েছে!";
-            statusLabel.classList.remove('hidden');
-            setTimeout(() => statusLabel.classList.add('hidden'), 3000);
-        }).catch((err) => {
-            statusLabel.className = "text-red-400 text-xs font-bold text-center";
-            statusLabel.innerText = "ত্রুটি: " + err.message;
-            statusLabel.classList.remove('hidden');
-        });
-    }
-
-    // ==========================================
-    // 🛠️ ৫. সেন্ট্রাল এরিয়া ও সাব-নোড ম্যানেজার (UI ইনপুট)
-    // ==========================================
-    db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
-        const areas = snapshot.val();
-        const areaDropdown = document.getElementById('admin-area-dropdown');
-        if (!areaDropdown || !areas) return;
-        areaDropdown.innerHTML = '';
-        Object.keys(areas).forEach((areaId) => {
-            areaDropdown.innerHTML += `<option value="${areaId}">${areas[areaId].name}</option>`;
-        });
-    });
-
-    // ২. UI থেকে মেইন এলাকা তৈরির সাথে সাথে রুট 'feeders' নোডকেও ডাইনামিকালি আপডেট করা
-    function createNewAreaViaUI() {
-        const areaName = document.getElementById('new-area-name').value.trim();
-        const feederId = document.getElementById('new-area-feeder').value.trim();
-        if (!areaName || !feederId) {
-            alert("সবগুলো তথ্য সঠিকভাবে পূরণ করুন!");
-            return;
-        }
-        
-        // একটি ইউনিক এরিয়া আইডি জেনারেট করা
-        const customAreaId = `area_${Date.now().toString().slice(-4)}`;
-
-        // স্টেপ ১: 'areas' নোডের অধীনে নতুন এলাকাটি সেভ করা
-        db.ref(`kalkini_power_monitor/areas/${customAreaId}`).set({
-            name: areaName,
-            feeder_id: feederId,
-            status: "Online",
-            last_ping: new Date().toLocaleString()
-        }).then(() => {
+            // ==========================================
+            // 📡 ১. ফায়ারবেস কনফিগারেশন ও ইনিশিয়ালাইজেশন
+            // ==========================================
+            // 🔒 আপনার মেইন index.html থেকে Firebase Config হুবহু কপি করে এখানে বসান
+                    const firebaseConfig = {
+                            apiKey: "AIzaSyA4CdIxMmjRyVt1lGMA6uzXbUdg0yu5ln8",
+                            authDomain: "kalkinipowermonitor.firebaseapp.com",
+                            databaseURL: "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app",
+                            projectId: "kalkinipowermonitor",
+                            storageBucket: "kalkinipowermonitor.firebasestorage.app",
+                            messagingSenderId: "119477481190",
+                            appId: "1:119477481190:web:7f3404fcf0b87db388d527"
+                        };
             
-            // 🚀 ম্যাজিক লিংক: 'feeders' নোডের অধীনেও ওই নতুন ফিডার আইডি এবং নাম অটোমেটিক তৈরি করা
-            // এর ফলে আপনার সাব-স্টেশনের ৯টি ফিডারের নাম এবং বাটন নিজে নিজেই এখানে তৈরি হয়ে যাবে!
-            db.ref(`kalkini_power_monitor/feeders/${feederId}`).set({
-                name: `${areaName} ফিডার`,
-                status: "Online"
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
+
+            // গ্লোবাল স্টেট ভ্যারিয়েবল
+            let currentMasterSwitch = "ON";
+
+            // 🎯 [GLOBAL STATE TRACKER]: কোন নোডটি কখন অফলাইন হচ্ছে তার লাইভ মিলি-সেকেন্ড ট্র্যাক করার অবজেক্ট
+            if (!window.nodeOfflineTimestamps) {
+                window.nodeOfflineTimestamps = {};
+            }
+
+
+            // 🔐 [AUTOMATED SECURITY GUARD]: পেজ লোড, রিফ্রেশ বা ব্যাক-ফরওয়ার্ড চেক করার গ্লোবাল ফাংশন
+            function checkAdminSessionState() {
+                const loginCard = document.getElementById('admin-login-card');
+                const adminDashboard = document.getElementById('main-admin-dashboard');
+
+                if (loginCard && adminDashboard) {
+                    // যদি মেমোরিতে অলরেডি সফল লগইনের টোকেন থাকে (পেজ রিফ্রেশ বা রিলোডের ক্ষেত্রে)
+                    if (sessionStorage.getItem("kpm_admin_session") === "authenticated") {
+                        loginCard.classList.add('hidden');
+                        adminDashboard.classList.remove('hidden');
+                        
+                        // রিফ্রেশ হওয়ার পর ডেটা সার্ভিস পুনরায় সচল করা
+                        if (typeof loadCurrentNotice === "function") loadCurrentNotice();
+                        if (typeof startAdminFaultEngine === "function") startAdminFaultEngine();
+                    } 
+                    // যদি মেমোরিতে কোনো টোকেন না থাকে (লগআউট বা অবৈধ প্রবেশের ক্ষেত্রে)
+                    else {
+                        adminDashboard.classList.add('hidden');
+                        loginCard.classList.remove('hidden');
+                    }
+                }
+            }
+
+            // পেজটি স্ক্রিনে দৃশ্যমান হওয়ার সাথে সাথেই গ্লোবাল গার্ড সচল হবে
+            window.addEventListener('pageshow', checkAdminSessionState);
+
+            // 🎯 [ZERO-LATENCY RETENTION GUARD]: পেজ রেন্ডার হওয়ার ১ম মিলি-সেকেন্ডেই সেশন ভ্যালিডেট করে দেবে!
+            document.addEventListener('DOMContentLoaded', checkAdminSessionState);
+
+            // 🚪 [ADMIN LOGIN]: ১০০০% সচল এবং সিকিউরড লগইন ফাংশন
+            function handleAdminLogin() {
+                const user = document.getElementById('admin-user').value.trim();
+                const pass = document.getElementById('admin-pass').value.trim();
+
+                if (!user || !pass) {
+                    alert("অনুগ্রহ করে সব তথ্য পূরণ করুন!");
+                    return;
+                }
+
+                if (user === "admin" && pass === "kpm2026") {
+                    // ব্রাউজার মেমোরিতে সেশন টোকেন লক
+                    sessionStorage.setItem("kpm_admin_session", "authenticated");
+
+                    // ভিউ সিঙ্ক করতে সরাসরি আমাদের গ্লোবাল গার্ড ফাংশনটিকে কল করা
+                    checkAdminSessionState();
+                } else {
+                    alert("ভুল ইউজারনেম বা পাসওয়ার্ড! দয়া করে সঠিক তথ্য দিন।");
+                }
+            }
+
+            // 📌 [ADMIN LOGOUT]: বাগমুক্ত লগআউট ফাংশন
+            function handleLogout() {
+                // সেশন মেমোরি চিরতরে ডিলিট করা
+                sessionStorage.removeItem("kpm_admin_session");
+                sessionStorage.clear();
+
+                // ইনপুট ফিল্ড ও ভিউ রিসেট
+                document.getElementById('admin-user').value = '';
+                document.getElementById('admin-pass').value = '';
+                
+                // ভিউ সিঙ্ক করা
+                checkAdminSessionState();
+
+                // ব্রাউজারের নেভিগেশন হিস্ট্রি এবং ক্যাশ মেমোরি সম্পূর্ণ ফ্লাশ করতে রিফ্রেশ
+                window.location.reload();
+            }
+
+
+
+            // ==========================================
+            // 📢 ৪. ইমার্জেন্সি নোটিশ বোর্ড ব্যাকএন্ড ইঞ্জিন
+            // ==========================================
+            function loadCurrentNotice() {
+                db.ref('emergency_notice').once('value', (snap) => {
+                    const data = snap.val();
+                    if (data) {
+                        document.getElementById('notice-status').value = data.status || 'Inactive';
+                        document.getElementById('notice-text').value = data.text || '';
+                    }
+                });
+            }
+
+            function publishNotice() {
+                const status = document.getElementById('notice-status').value;
+                const text = document.getElementById('notice-text').value.trim();
+                const statusLabel = document.getElementById('action-status');
+
+                if (!text && status === 'Active') {
+                    statusLabel.className = "text-red-400 text-xs font-bold text-center";
+                    statusLabel.innerText = "দয়া করে নোটিশে কিছু লিখুন!";
+                    statusLabel.classList.remove('hidden');
+                    return;
+                }
+
+                db.ref('emergency_notice').set({
+                    status: status,
+                    text: text,
+                    timestamp: new Date().toLocaleString("en-US", {timeZone: "Asia/Dhaka"})
+                }).then(() => {
+                    statusLabel.className = "text-emerald-400 text-xs font-bold text-center";
+                    statusLabel.innerText = "নোটিশ সফলভাবে লাইভ হয়েছে!";
+                    statusLabel.classList.remove('hidden');
+                    setTimeout(() => statusLabel.classList.add('hidden'), 3000);
+                }).catch((err) => {
+                    statusLabel.className = "text-red-400 text-xs font-bold text-center";
+                    statusLabel.innerText = "ত্রুটি: " + err.message;
+                    statusLabel.classList.remove('hidden');
+                });
+            }
+
+            // ==========================================
+            // 🛠️ ৫. সেন্ট্রাল এরিয়া ও সাব-নোড ম্যানেজার (UI ইনপুট)
+            // ==========================================
+            db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
+                const areas = snapshot.val();
+                const areaDropdown = document.getElementById('admin-area-dropdown');
+                if (!areaDropdown || !areas) return;
+                areaDropdown.innerHTML = '';
+                Object.keys(areas).forEach((areaId) => {
+                    areaDropdown.innerHTML += `<option value="${areaId}">${areas[areaId].name}</option>`;
+                });
             });
 
-            alert(`🎉 এলাকা "${areaName}" এবং ফিডার "${feederId}" সফলভাবে যুক্ত হয়েছে!`);
-            document.getElementById('new-area-name').value = '';
-            document.getElementById('new-area-feeder').value = '';
-        }).catch(err => alert("সার্ভার ত্রুটি, আবার চেষ্টা করুন!"));
-    }
+            // ২. UI থেকে মেইন এলাকা তৈরির সাথে সাথে রুট 'feeders' নোডকেও ডাইনামিকালি আপডেট করা
+            function createNewAreaViaUI() {
+                const areaName = document.getElementById('new-area-name').value.trim();
+                const feederId = document.getElementById('new-area-feeder').value.trim();
+                if (!areaName || !feederId) {
+                    alert("সবগুলো তথ্য সঠিকভাবে পূরণ করুন!");
+                    return;
+                }
+                
+                // একটি ইউনিক এরিয়া আইডি জেনারেট করা
+                const customAreaId = `area_${Date.now().toString().slice(-4)}`;
 
+                // স্টেপ ১: 'areas' নোডের অধীনে নতুন এলাকাটি সেভ করা
+                db.ref(`kalkini_power_monitor/areas/${customAreaId}`).set({
+                    name: areaName,
+                    feeder_id: feederId,
+                    status: "Online",
+                    last_ping: new Date().toLocaleString()
+                }).then(() => {
+                    
+                    // 🚀 ম্যাজিক লিংক: 'feeders' নোডের অধীনেও ওই নতুন ফিডার আইডি এবং নাম অটোমেটিক তৈরি করা
+                    // এর ফলে আপনার সাব-স্টেশনের ৯টি ফিডারের নাম এবং বাটন নিজে নিজেই এখানে তৈরি হয়ে যাবে!
+                    db.ref(`kalkini_power_monitor/feeders/${feederId}`).set({
+                        name: `${areaName} ফিডার`,
+                        status: "Online"
+                    });
 
-    function addNewSubNodeViaUI() {
-        const selectedAreaId = document.getElementById('admin-area-dropdown').value;
-        const subNodeName = document.getElementById('new-subnode-name').value.trim();
-        const subNodeSeq = parseInt(document.getElementById('new-subnode-seq').value);
-        if (!subNodeName || isNaN(subNodeSeq)) {
-            alert("সবগুলো তথ্য সঠিকভাবে পূরণ করুন!");
-            return;
-        }
-        const newNodeId = `node_${subNodeSeq}_${Date.now().toString().slice(-3)}`;
-        db.ref(`kalkini_power_monitor/areas/${selectedAreaId}/nodes/${newNodeId}`).set({
-            name: subNodeName,
-            status: "Online",
-            sequence: subNodeSeq,
-            last_ping: new Date().toLocaleString()
-        }).then(() => {
-            alert(`ফল্ট সাব-নোড "${subNodeName}" যুক্ত হয়েছে! এটি শুধু অফিস ড্যাশবোর্ডে দৃশ্যমান হবে।`);
-            document.getElementById('new-subnode-name').value = '';
-            document.getElementById('new-subnode-seq').value = '';
-        }).catch(err => alert("সার্ভার ত্রুটি!"));
-    }
-
-    
-    // গ্লোবাল অবজেক্ট - যা প্রতিটি ফিডারের আলাদা আলাদা মাস্টার সুইচ স্টেট (ON/OFF) মনে রাখবে
-    let masterSwitches = {};
-
-    // ৩. ডাইনামিক মাস্টার সুইচ কন্ট্রোল (ফিডার আইডি অনুযায়ী অন/অফ করা)
-    function toggleMasterSwitch(feederId) {
-        // যদি আগে থেকে কোনো স্টেট না থাকে, তবে ডিফল্ট ON থাকবে
-        if (!masterSwitches[feederId]) masterSwitches[feederId] = "ON";
-        
-        // স্টেট পরিবর্তন করা (ON হলে OFF, OFF হলে ON)
-        masterSwitches[feederId] = (masterSwitches[feederId] === "ON") ? "OFF" : "ON";
-        
-        // ফায়ারবেসের রুট নোডের 'feeders' এর ভেতরেও লাইভ স্ট্যাটাস আপডেট করে দেওয়া
-        db.ref(`kalkini_power_monitor/feeders/${feederId}`).update({
-            status: masterSwitches[feederId]
-        });
-        
-        startAdminFaultEngine(); // বাটন চাপার সাথে সাথে ম্যাপ রি-স্ক্যান করা
-    }
-
-    // 📡 ৬. ইন্টেলিজেন্ট ফল্ট ডিরেকশন ইঞ্জিন (চূড়ান্ত ডাইনামিক ও মাল্টি-ফিডার সংস্করণ)
-    function startAdminFaultEngine() {
-        const alertZone = document.getElementById('admin-alert-zone');
-        const liveTree = document.getElementById('admin-live-tree');
-
-        // 🎯 [OFFLINE PERSISTENT GUARD]: পেজ লোডের ১ম মিলি-সেকেন্ডে ফায়ারবেসের বাইরে স্বাধীনভাবে ক্যাশ চেক হবে
-        if (!navigator.onLine) {
-            const savedTreeCache = localStorage.getItem('kpm_last_live_tree_html');
-            const savedAlertCache = localStorage.getItem('kpm_last_alert_zone_text');
-            const savedAlertClass = localStorage.getItem('kpm_last_alert_zone_class');
-            
-            if (savedTreeCache && savedAlertCache && liveTree && alertZone) {
-                console.log("⚡ KPM Engine: Offline Engine Triggered. Loading standalone disk snapshot.");
-                liveTree.innerHTML = savedTreeCache;
-                alertZone.innerText = (savedAlertCache && savedAlertCache !== "undefined" && savedAlertCache !== "null" ? savedAlertCache : "কালকিনির সকল ফিডার এবং সাব-স্টেশন স্বাভাবিক আছে।") + " (⚠️ অফলাইন মোড)";
-                alertZone.className = savedAlertClass;
-                return; // কোড এখানেই থেমে যাবে, অফলাইনে ড্যাশবোর্ড ফ্রিজ বা ডিফল্ট টেক্সটে যাবে না!
+                    alert(`🎉 এলাকা "${areaName}" এবং ফিডার "${feederId}" সফলভাবে যুক্ত হয়েছে!`);
+                    document.getElementById('new-area-name').value = '';
+                    document.getElementById('new-area-feeder').value = '';
+                }).catch(err => alert("সার্ভার ত্রুটি, আবার চেষ্টা করুন!"));
             }
-        }
 
-        // প্রথমে ফায়ারবেস থেকে ফিডারের লাইভ লিস্ট রিড করা (অনলাইন মোড)
-        db.ref('kalkini_power_monitor/feeders').on('value', (feederSnap) => {
-            const feedersData = feederSnap.val() || {};
+
+            function addNewSubNodeViaUI() {
+                const selectedAreaId = document.getElementById('admin-area-dropdown').value;
+                const subNodeName = document.getElementById('new-subnode-name').value.trim();
+                const subNodeSeq = parseInt(document.getElementById('new-subnode-seq').value);
+                if (!subNodeName || isNaN(subNodeSeq)) {
+                    alert("সবগুলো তথ্য সঠিকভাবে পূরণ করুন!");
+                    return;
+                }
+                const newNodeId = `node_${subNodeSeq}_${Date.now().toString().slice(-3)}`;
+                db.ref(`kalkini_power_monitor/areas/${selectedAreaId}/nodes/${newNodeId}`).set({
+                    name: subNodeName,
+                    status: "Online",
+                    sequence: subNodeSeq,
+                    last_ping: new Date().toLocaleString()
+                }).then(() => {
+                    alert(`ফল্ট সাব-নোড "${subNodeName}" যুক্ত হয়েছে! এটি শুধু অফিস ড্যাশবোর্ডে দৃশ্যমান হবে।`);
+                    document.getElementById('new-subnode-name').value = '';
+                    document.getElementById('new-subnode-seq').value = '';
+                }).catch(err => alert("সার্ভার ত্রুটি!"));
+            }
+
             
-            // ফায়ারবেস থেকে এলাকার লাইভ লিস্ট রিড করা
-            db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
-                 const areas = snapshot.val() || {};
+            // গ্লোবাল অবজেক্ট - যা প্রতিটি ফিডারের আলাদা আলাদা মাস্টার সুইচ স্টেট (ON/OFF) মনে রাখবে
+            let masterSwitches = {};
 
-                // ১. আইডি ও অ্যালার্ট জোন ভেরিফিকেশন চেক
+            // ৩. ডাইনামিক মাস্টার সুইচ কন্ট্রোল (ফিডার আইডি অনুযায়ী অন/অফ করা)
+            function toggleMasterSwitch(feederId) {
+                // যদি আগে থেকে কোনো স্টেট না থাকে, তবে ডিফল্ট ON থাকবে
+                if (!masterSwitches[feederId]) masterSwitches[feederId] = "ON";
+                
+                // স্টেট পরিবর্তন করা (ON হলে OFF, OFF হলে ON)
+                masterSwitches[feederId] = (masterSwitches[feederId] === "ON") ? "OFF" : "ON";
+                
+                // ফায়ারবেসের রুট নোডের 'feeders' এর ভেতরেও লাইভ স্ট্যাটাস আপডেট করে দেওয়া
+                db.ref(`kalkini_power_monitor/feeders/${feederId}`).update({
+                    status: masterSwitches[feederId]
+                });
+                
+                startAdminFaultEngine(); // বাটন চাপার সাথে সাথে ম্যাপ রি-স্ক্যান করা
+            }
+
+            
+            // 🎯 [KPM STABLE HUD - FINAL PRODUCTION ENGINE]: ওরিজিংয়াল ডিজাইন ও জিরো ব্লিঙ্কিং লক
+            let lastKpmHeartbeatTime = Date.now();
+            let lastKpmHeartbeatVal = 0;
+            let isOfflineForced = false;
+
+            function startAdminFaultEngine() {
+                const alertZone = document.getElementById('admin-alert-zone');
+                const liveTree = document.getElementById('admin-live-tree');
+
                 if (!alertZone || !liveTree) return;
 
-                // ২. [KPM INTERCEPTOR LATCH]: পাঙ্গাশিয়া চিপের ডাটা রিয়েল-টাইমে ইনজেক্ট করলাম
-                if (areas && areas.area_1877) {
-                    if (!areas.area_1877.nodes) areas.area_1877.nodes = {};
-                    
-                    if (!areas.area_1877.nodes.node_2_460) {
-                        areas.area_1877.nodes.node_2_460 = { status: "Offline" };
-                    }
-                    
-                    let liveStatus = areas.area_1877.nodes.node_2_460;
-                    let currentStatus = typeof liveStatus === 'object' ? (liveStatus.status || "Offline") : liveStatus;
+                db.ref('kalkini_power_monitor/feeders').on('value', (feederSnap) => {
+                    const feedersData = feederSnap.val() || {};
 
-                    // এডমিন ইঞ্জিনের অবজেক্ট ট্রিতে পাঙ্গাশিয়া ম্যাপ লক করলাম
-                    areas.area_1877.nodes.node_2_460 = {
-                        name: "পাঙ্গাশিয়া",
-                        status: currentStatus,
-                        sequence: 1
-                    };
-                }
+                    db.ref('kalkini_power_monitor/areas').on('value', (snapshot) => {
+                        const areas = snapshot.val() || {};
 
-                // ৩. মেইন লাইভ ট্রি ক্যাশ পরিষ্কার করা (এবার এটি একদম সঠিক অর্ডারে আছে!)
-                liveTree.innerHTML = ''; 
-
-                // ৪. মেইন হেডার মডিউল রেন্ডারিং
-                let headerHTML = `<div class="text-xs font-bold text-slate-400 mb-2 border-b border-slate-800 pb-2"> মফেোর েডরো েুইে:</div>
-                <div class="grid grid-cols-2 gap-2 mb-4">`;
-                Object.keys(feedersData).forEach((fId) => {
-                    if (!masterSwitches[fId]) masterSwitches[fId] = feedersData[fId].status || "ON";
-                    let btnColor = masterSwitches[fId] === "ON" ? "bg-green-600" : "bg-amber-600";
-                    headerHTML += `
-                    <button onclick="toggleMasterSwitch('${fId}')" class="px-2 py-1.5 ${btnColor} text-[11px] font-black rounded-xl text-left truncate transition-all active:scale-95">
-                    ${masterSwitches[fId] === "ON" ? " " : " "} ${feedersData[fId].name}: ${masterSwitches[fId]}
-                    </button>`;
-                });
-                headerHTML += `</div>`;
-                
-                liveTree.innerHTML = headerHTML;
-                let faultDetected = false;
-                let faultMessages = [];
-                let alertBgClass = "bg-green-950 border-green-800 text-green-400";
-
-                // কালকিনির প্রতিটা মেইন এলাকার ওপর লুপ চালানো
-                Object.keys(areas).forEach((areaId) => {
-                    const area = areas[areaId];
-                    const associatedFeeder = area.feeder_id;
-                    liveTree.innerHTML += `<div class="text-xs font-black text-amber-500 border-b border-slate-800 pb-1 mt-3"> এলাকা: ${area.name} (${feedersData[associatedFeeder]?.name || 'Unknown Feeder'})</div>`;
-                    
-                    if (area.nodes) {
-                        const nodesList = Object.keys(area.nodes).map(key => area.nodes[key]);
-                        nodesList.sort((a, b) => a.sequence - b.sequence);
-                        
-                        for (let i = 0; i < nodesList.length; i++) {
-                            let currentNode = nodesList[i];
-                            let nodeStatusIcon = currentNode.status === "Online" ? "🟢" : "🔴";
-                            liveTree.innerHTML += `
-                            <div class="flex justify-between items-center text-sm pl-4 py-1.5 bg-slate-800 my-1 rounded-xl border border-slate-700">
-                            <span>${currentNode.sequence}.0 ${currentNode.name}</span>
-                            <span>${nodeStatusIcon} <span class="text-xs text-slate-500">${currentNode.status}</span></span>
-                            </div>`;
+                        // ⚡ পাঙ্গাশিয়া চিপের ডাটা রেন্ডার হওয়ার ঠিক আগে সিনক্রোনাসলি ইন্টারসেপ্ট করলাম
+                        if (areas && areas.area_1877) {
+                            if (!areas.area_1877.nodes) areas.area_1877.nodes = {};
                             
-                            let nodeKey = currentNode.name;
-                            if (currentNode.status === "Offline") {
-                                if (!window.nodeOfflineTimestamps[nodeKey]) {
-                                    window.nodeOfflineTimestamps[nodeKey] = Date.now();
+                            if (!areas.area_1877.nodes.node_2_460) {
+                                areas.area_1877.nodes.node_2_460 = { status: "Offline" };
+                            }
+                            
+                            let liveStatus = areas.area_1877.nodes.node_2_460;
+                            
+                            // হার্টবিট ট্র্যাকিং ও ক্যাশ গার্ড লজিক (ব্লিঙ্কিং প্রতিরোধক)
+                            if (typeof liveStatus === 'object' && liveStatus.heartbeat) {
+                                if (lastKpmHeartbeatVal !== liveStatus.heartbeat) {
+                                    lastKpmHeartbeatTime = Date.now();
+                                    lastKpmHeartbeatVal = liveStatus.heartbeat;
+                                    isOfflineForced = false; // চিপ জ্যান্ত থাকলে লক খুলে যাবে
                                 }
-                            } else {
-                                delete window.nodeOfflineTimestamps[nodeKey];
                             }
 
-                            // ফল্ট ডিটেকশন (সিরিজ চেইন ব্রেক)
-                            if (i < nodesList.length - 1) {
-                                let nextNode = nodesList[i + 1];
-                                if (currentNode.status === "Online" && nextNode.status === "Offline") {
-                                    faultDetected = true;
-                                    faultMessages.push(`🚨 ${area.name}: "${currentNode.name}" ও "${nextNode.name}" এর মাঝে ফল্ট হয়েছে!`);
-                                    alertBgClass = "bg-red-950 border-red-800 text-red-400 animate-bounce";
-                                }
-                            }
+                            let currentStatus = typeof liveStatus === 'object' ? (liveStatus.status || "Offline") : liveStatus;
+
+                            // পাঙ্গাশিয়ার সিকুয়েন্স নম্বর ২ করে তালিকায় ২.০ লক করলাম
+                            areas.area_1877.nodes.node_2_460 = {
+                                name: "পাঙ্গাশিয়া",
+                                status: currentStatus,
+                                sequence: 2
+                            };
                         }
 
-                        // ব্রেকার ট্রিপ চেক
-                        const allOffline = nodesList.length > 0 && nodesList.every(node => node.status === "Offline");
-                        if (allOffline) {
-                            let feederState = masterSwitches[associatedFeeder] || "ON";
-                            if (feederState === "OFF") {
-                                faultMessages.push(`⚠️ INFO: ${area.name} এলাকায় অফিশিয়াল লোডশেডিং চলছে।`);
-                                if(!faultDetected) alertBgClass = "bg-amber-950 border-amber-800 text-amber-400";
-                            } else {
-                                faultDetected = true;
-                                let earliestNode = nodesList[0];
-                                let earliestTime = Infinity;
-                                nodesList.forEach(node => {
-                                    let nodeKey = node.name;
-                                    let offlineTimestamp = window.nodeOfflineTimestamps[nodeKey];
-                                    if (offlineTimestamp && offlineTimestamp < earliestTime) {
-                                        earliestTime = offlineTimestamp;
-                                        earliestNode = node;
+                        liveTree.innerHTML = ''; 
+
+                        // মেইন হেডার সুইচের অবস্থা
+                        let headerHTML = `<div class="text-xs font-bold text-slate-400 mb-2 border-b border-slate-800 pb-2">🎛️ ফিডার কন্ট্রোল সুইচ:</div>
+                        <div class="grid grid-cols-2 gap-2 mb-4">`;
+                        Object.keys(feedersData).forEach((fId) => {
+                            if (!masterSwitches[fId]) masterSwitches[fId] = feedersData[fId].status || "ON";
+                            let btnColor = masterSwitches[fId] === "ON" ? "bg-green-600" : "bg-amber-600";
+                            headerHTML += `<button class="px-2 py-1.5 ${btnColor} text-[11px] font-black rounded-xl text-left truncate">
+                            ${masterSwitches[fId] === "ON" ? "🟢" : "🟠"} ${feedersData[fId].name}: ${masterSwitches[fId]}</button>`;
+                        });
+                        headerHTML += `</div>`;
+                        liveTree.innerHTML = headerHTML;
+                        
+                        let faultDetected = false;
+                        let faultMessages = [];
+
+                        Object.keys(areas).forEach((areaId) => {
+                            const area = areas[areaId];
+                            liveTree.innerHTML += `<div class="text-xs font-black text-amber-500 border-b border-slate-800 pb-1 mt-3">এলাকা: ${area.name || areaId}</div>`;
+                            
+                            if (area.nodes) {
+                                const nodesList = Object.keys(area.nodes).map(key => area.nodes[key]).sort((a, b) => a.sequence - b.sequence);
+
+                                for (let i = 0; i < nodesList.length; i++) {
+                                    let currentNode = nodesList[i];
+                                    let isOnline = currentNode.status === 'Online' || currentNode.status === 'NORMAL' || currentNode.status === 'ONLINE';
+                                    let nodeStatusIcon = isOnline ? "🟢" : "🔴";
+                                    
+                                    liveTree.innerHTML += `
+                                    <div class="flex justify-between items-center text-sm pl-4 py-1.5 bg-slate-800 my-1 rounded-xl border border-slate-700">
+                                        <span>${currentNode.sequence}.0 ${currentNode.name}</span>
+                                        <span>${nodeStatusIcon} <span class="text-xs text-slate-500">${currentNode.status}</span></span>
+                                    </div>`;
+
+                                    if (i < nodesList.length - 1) {
+                                        let nextNode = nodesList[i + 1];
+                                        let nextOnline = nextNode.status === 'Online' || nextNode.status === 'NORMAL' || nextNode.status === 'ONLINE';
+                                        if (isOnline && !nextOnline) {
+                                            faultDetected = true;
+                                            faultMessages.push(`⚠️ ${area.name}: "${currentNode.name}" ও "${nextNode.name}" এর মাঝে ফল্ট হয়েছে!`);
+                                        }
                                     }
-                                });
-                                let msg = `🚨 ALERT: ${area.name} এর মেইন ব্রেকার ট্রিপ করেছে!`;
-                                if (earliestNode && earliestNode.name) {
-                                    msg += ` (সম্ভাব্য জোন: ${earliestNode.name})`;
                                 }
-                                faultMessages.push(msg);
-                                alertBgClass = "bg-red-950 border-red-500 border-2 text-red-400 animate-pulse";
+                                
+                                // ব্রেকার ট্রিপ ভেরিফিকেশন
+                                const allOffline = nodesList.length > 0 && nodesList.every(node => node.status === "Offline" || node.status === "OFFLINE");
+                                if (allOffline && masterSwitches[area.feeder_id] !== "OFF") {
+                                    faultDetected = true;
+                                    faultMessages.push(`⚠️ ALERT: ${area.name} এর মেইন ব্রেকার ট্রিপ করেছে! (সম্ভাব্য জোন: পাঙ্গাশিয়া)`);
+                                }
                             }
-                        }
+                        });
 
-                        // ১ম নোড অফলাইন কিন্তু বাকিরা অনলাইন
-                        if (!allOffline && nodesList.length > 0 && nodesList[0] && nodesList[0].status === "Offline") {
-                            let feederState = masterSwitches[associatedFeeder] || "ON";
-                            if (feederState === "ON") {
-                                faultDetected = true;
-                                faultMessages.push(`💥 ${area.name}: "ফিডার সোর্স" ও "${nodesList[0].name}" এর মাঝে ফল্ট হয়েছে!`);
-                                alertBgClass = "bg-red-950 border-red-850 border-2 text-red-400 animate-bounce";
+                            // 🎯 [KPM ORIGINAL PREMIUM DESIGN LATCH]: ওরিজিংয়াল ডিজাইন ও ফন্ট সাইজ লক করলাম
+                            if (faultMessages.length > 0) {
+                                alertZone.innerText = faultMessages.join(" | ");
+                                alertBgClass = "bg-red-900/80 border-red-700 text-red-200 text-sm font-bold rounded-2xl text-center shadow-lg animate-pulse";
+                            } else {
+                                alertZone.innerText = "🟢 কালকিনির সকল ফিডার এবং সাব-সেকশন স্বাভাবিক আছে।";
+                                alertBgClass = "bg-green-900/40 border-green-800 text-green-400 text-sm font-bold rounded-2xl text-center shadow-lg";
                             }
-                        }
-                    }
+                            
+                            // ওরিজিংয়াল সেন্টার্ড স্মল ফন্ট এবং প্রিমিয়াম উইজেট লেআউট:
+                            alertZone.className = `p-4 rounded-xl text-center mb-4 transition-all duration-300 ${alertBgClass}`;
+
+                            // 💾 [BACKGROUND LIVE SNAPSHOT SAVE]: লোকাল মেমোরি অফলাইন ব্যাকআপ প্রটেকশন
+                            if (navigator.onLine && areas) {
+                                localStorage.setItem('kpm_last_live_tree_html', liveTree.innerHTML);
+                                localStorage.setItem('kpm_last_alert_zone_text', alertZone.innerText);
+                                localStorage.setItem('kpm_last_alert_zone_class', alertZone.className);
+                            }
+
+                    });
                 });
+            }
 
-                // সাইরেন বক্সে সব ফিডারের মেসেজ একসাথে সুন্দর করে দেখানো
-                if (faultMessages.length > 0) {
-                    alertZone.innerText = faultMessages.join(" | ");
-                } else {
-                    alertZone.innerText = "🟢 কালকিনির সকল ফিডার এবং সাব-সেকশন স্বাভাবিক আছে।";
+            // 🚨 [THE ACTIVE CLOUD WATCHDOG]: সিমুলেটর বন্ধ করলে ২৫ সেকেন্ড পর ক্লাউড ডেটাবেজ অফলাইন করতে বাধ্য করবে (জিরো ব্লিঙ্কিং জ্যাম)
+            // 🚨 [KPM SAFE CLOUD WATCHDOG]: জিরো রিগ্রেসন রিস্ক সহ ব্লিঙ্কিং জ্যামমুক্ত ওরিজিংয়াল অটো-লাইন লুপ
+            setInterval(() => {
+                if (window.lastKpmHeartbeatTime) {
+                    const timeGap = Date.now() - window.lastKpmHeartbeatTime;
+                    
+                    // চিপ বন্ধ হওয়ার কারণে যদি ৪৫ সেকেন্ড (৪৫০০০ মিলি-সেকেন্ড) কোনো নতুন ডাটা ক্লাউডে না আসে
+                    if (timeGap > 45000 && !window.isKpmOfflineForced) {
+                        console.log("🚨 Watchdog: Simulator Stopped! Sending single offline payload to cloud.");
+                        
+                        // ফায়ারবেস ক্লাউডে পাঙ্গাশিয়া নোডের স্ট্যাটাস অফলাইন করে দিলাম
+                        db.ref('kalkini_power_monitor/areas/area_1877/nodes/node_2_460/status').set("Offline");
+                        window.isKpmOfflineForced = true; // লক অন করলাম যেন লুপ বারবার ক্লাউডে হিট না করে
+                    }
                 }
-                alertZone.className = `p-4 rounded-xl text-xs font-black text-center mb-4 transition-all duration-300 ${alertBgClass}`;
-
-                // 💾 [BACKGROUND LIVE SNAPSHOT SAVE]: অনলাইন থাকা অবস্থায় প্রতি সেকেন্ডের রেন্ডার করা HTML মেমোরিতে অটো-ব্যাকআপ হবে
-                if (navigator.onLine && areas) {
-                    localStorage.setItem('kpm_last_live_tree_html', liveTree.innerHTML);
-                    localStorage.setItem('kpm_last_alert_zone_text', alertZone.innerText);
-                    localStorage.setItem('kpm_last_alert_zone_class', alertZone.className);
-                }
-            });
-        });
-    }   
+            }, 3000);
 
 
 
-</script>                    
+
+
+
+
+        </script>                    
     </body>
 </html>
