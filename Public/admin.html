@@ -367,9 +367,9 @@
 
             
             // 🎯 [KPM STABLE HUD - FINAL PRODUCTION ENGINE]: ওরিজিংয়াল ডিজাইন ও জিরো ব্লিঙ্কিং লক
-            let lastKpmHeartbeatTime = Date.now();
+            window.lastKpmHeartbeatTime = window.lastKpmHeartbeatTime || Date.now();
             let lastKpmHeartbeatVal = 0;
-            let isOfflineForced = false;
+            window.isKpmOfflineForced = window.isKpmOfflineForced || false;
 
             function startAdminFaultEngine() {
                 const alertZone = document.getElementById('admin-alert-zone');
@@ -396,9 +396,9 @@
                             // হার্টবিট ট্র্যাকিং ও ক্যাশ গার্ড লজিক (ব্লিঙ্কিং প্রতিরোধক)
                             if (typeof liveStatus === 'object' && liveStatus.heartbeat) {
                                 if (lastKpmHeartbeatVal !== liveStatus.heartbeat) {
-                                    lastKpmHeartbeatTime = Date.now();
+                                    window.lastKpmHeartbeatTime = Date.now();
                                     lastKpmHeartbeatVal = liveStatus.heartbeat;
-                                    isOfflineForced = false; // চিপ জ্যান্ত থাকলে লক খুলে যাবে
+                                    window.isKpmOfflineForced = false; // চিপ জ্যান্ত থাকলে লক খুলে যাবে
                                 }
                             }
 
