@@ -44,6 +44,19 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   // শুধুমাত্র GET রিকোয়েস্টগুলো ইন্টারসেপ্ট করা
   if (event.request.method === 'GET') {
+    
+    // 📡 [FIREBASE BYPASS SHIELD]: ফায়ারবেস লাইভ ডেটা রিকোয়েস্ট হলে সরাসরি নেটওয়ার্কে পাঠাবে, ক্যাশ ছুঁয়েও দেখবে না
+    if (event.request.url.includes('firebaseio.com') || event.request.url.includes('.json')) {
+      return event.respondWith(
+        fetch(event.request).catch(() => {
+          // যদি ইন্টারনেট একদম চলে যায়, তবেই কেবল ফলব্যাক বাতি বা অফলাইন দেখাবে
+          return new Response(JSON.stringify({ error: "Network disconnected" }), {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        })
+      );
+    }
+
     event.respondWith(
       // প্রথমে ক্যাশ মেমোরিতে নিখুঁতভাবে ফাইল খোঁজা
       caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
@@ -53,8 +66,6 @@ self.addEventListener('fetch', (event) => {
         }
 
         // ২. ক্যাশে না থাকলে ইন্টারনেট থেকে টেনে আনার চেষ্টা করবে
-        // ====== service-worker.js এর fetch ব্লকের ভেতরের cache.put অংশটুকু এভাবে আপডেট করুন ======
-
         return fetch(event.request).then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             let responseClone = networkResponse.clone();
@@ -79,5 +90,6 @@ self.addEventListener('fetch', (event) => {
     );
   }
 });
+
 
 
