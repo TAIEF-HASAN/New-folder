@@ -35,3 +35,4 @@ setInterval(async () => {
         console.error("❌ Firebase Sync Error:", error.message);
     }
 }, 30000); // ৩০ সেকেন্ড ইন্টারভাল লক
+  
