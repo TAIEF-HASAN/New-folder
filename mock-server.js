@@ -1,43 +1,49 @@
-// KPM LIGHTWEIGHT LOCAL MOCK SERVER (Fixed Parser Gateway)
+// KPM RUNTIME DATA INJECTOR (Ensuring 100% Dashboard Coverage)
 const admin = require('firebase-admin');
 const path = require('path');
 
-// 🔐 আপনার ডিরেক্টরি ট্রি-তে থাকা আসল serviceAccountKey.json ফাইলের পাথ লক করলাম
 const serviceAccountPath = path.join(__dirname, 'serviceAccountKey.json');
 const serviceAccount = require(serviceAccountPath);
 
-// 🔗 ওরিজিংয়াল ফায়ারবেস ক্লিন বেস ইউআরএল (কোনো এন্ডপয়েন্ট বা এক্সট্রা স্ল্যাশ ছাড়া)
 const databaseURL = "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app";
-const NODE_PATH = 'kalkini_power_monitor/areas/area_1877/nodes/node_2_460';
-
 admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount), // ওরিজিনাল চাবি দিয়ে সাইন-ইন লক হলো
+    credential: admin.credential.cert(serviceAccount),
     databaseURL: databaseURL
 });
 
 const db = admin.database();
+const NODE_PATH = 'kalkini_power_monitor/areas/area_1877/nodes/node_2_460';
+const LOGS_PATH = 'kalkini_power_monitor/logs'; // আপনার চার্ট এবং কার্ডের ওরিজিনাল ডাটা সোর্স পাথ
 
-console.log("🛰️ KPM Virtual Engine: Activating Local Telemetry Simulator...");
+async function injectHistoricalData() {
+    console.log("⏳ Injecting historical telemetry logs to populate charts...");
+    const todayStr = "2026-10-21";
+    const yesterdayStr = "2026-10-20";
+    
+    const mockLogs = {};
+    // গত ৭ দিনের বার চার্ট এবং কার্ডের ক্যালকুলেশন ডেটা সচল করার জন্য মক ডাটা স্ট্রাকচার
+    mockLogs[`${LOGS_PATH}/${todayStr}/total_offline_minutes`] = 45;
+    mockLogs[`${LOGS_PATH}/${todayStr}/total_count`] = 3;
+    mockLogs[`${LOGS_PATH}/${yesterdayStr}/total_offline_minutes`] = 60;
+    mockLogs[`${LOGS_PATH}/${yesterdayStr}/total_count`] = 4;
+    
+    await db.ref().update(mockLogs);
+    console.log("🎯 Charts and Top Cards database layers populated successfully!");
+}
 
-// প্রতি ৩০ সেকেন্ড পর পর ডাটাবেজে জ্যান্ত হার্টবিট পুশ করার মেইন লুপ
+// সার্ভার চালু হওয়ার সাথে সাথে একবার ব্যাকগ্রাউন্ড লগ ইনজেক্ট করবে
+injectHistoricalData();
+
+// আপনার আগের সেই প্রতি ৩০ সেকেন্ডের লাইভ হার্টবিট লুপ
 setInterval(async () => {
     const now = Date.now();
-    // বাংলাদেশ সময় GMT+6 সিঙ্ক করার জন্য কারেন্ট আওয়ার গেট করলাম
-    const currentHour = new Date(new Date().getTime() + 6 * 3600 * 1000).getUTCHours();
-    let mockStatus = "Online";
-
-    // মক লোডশেডিং শিডিউল (দুপুর ২টা [১৪] এবং রাত ৮টা [২০])
-    if (currentHour === 14 || currentHour === 20) {
-        mockStatus = "Offline";
-    }
-
     try {
         await db.ref(NODE_PATH).update({
             heartbeat: now,
-            status: mockStatus
+            status: "Online"
         });
-        console.log(`🟢 Ping Synced Successfully -> Time: ${now} | Status: ${mockStatus}`);
+        console.log(`🟢 Live Ping -> Time: ${now} | Dashboard Status: Online`);
     } catch (error) {
-        console.error("❌ Firebase Sync Error:", error.message);
+        console.error("❌ Sync Error:", error.message);
     }
-}, 30000); // ৩০ সেকেন্ড ইন্টারভাল লক
+}, 30000);
