@@ -2,7 +2,7 @@
 const admin = require('firebase-admin');
 
 // ওরিজিনাল ফায়ারবেস কনফিগারেশন যা ফাইল এক্সপ্লোরার থেকে ডিটেক্ট হয়েছে
-const databaseURL = "https://firebasedatabase.app";
+const databaseURL = "https://kalkinipowermonitor-default-rtdb.asia-southeast1.firebasedatabase.app";
 const NODE_PATH = 'kalkini_power_monitor/areas/area_1877/nodes/node_2_460';
 
 admin.initializeApp({
