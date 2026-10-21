@@ -1,4 +1,4 @@
-// KPM RUNTIME DATA INJECTOR (Ensuring 100% Dashboard Coverage)
+// KPM LIGHTWEIGHT LOCAL MOCK TELEMETRY INJECTOR (Fixed Format Gateway)
 const admin = require('firebase-admin');
 const path = require('path');
 
@@ -12,38 +12,44 @@ admin.initializeApp({
 });
 
 const db = admin.database();
-const NODE_PATH = 'kalkini_power_monitor/areas/area_1877/nodes/node_2_460';
-const LOGS_PATH = 'kalkini_power_monitor/logs'; // আপনার চার্ট এবং কার্ডের ওরিজিনাল ডাটা সোর্স পাথ
+const LOGS_PATH = 'power_status'; // 🔗 আপনার index.html ফাইলের ওরিজিনাল নোড পাথ
 
-async function injectHistoricalData() {
-    console.log("⏳ Injecting historical telemetry logs to populate charts...");
-    const todayStr = "2026-10-21";
-    const yesterdayStr = "2026-10-20";
+// ⏱️ আপনার ফ্রন্টএন্ড কোডের en-BD ফর্ম্যাট অনুযায়ী বাংলাদেশ টাইমস্ট্যাম্প জেনারেটর
+function getBDTimestampString(offsetHours = 0, offsetMinutes = 0) {
+    const date = new Date();
+    // সময়ের ব্যবধান বা মক লোডশেডিং জেনারেট করার জন্য অফসেট অ্যাড করলাম
+    date.setHours(date.getHours() + offsetHours);
+    date.setMinutes(date.getMinutes() + offsetMinutes);
     
-    const mockLogs = {};
-    // গত ৭ দিনের বার চার্ট এবং কার্ডের ক্যালকুলেশন ডেটা সচল করার জন্য মক ডাটা স্ট্রাকচার
-    mockLogs[`${LOGS_PATH}/${todayStr}/total_offline_minutes`] = 45;
-    mockLogs[`${LOGS_PATH}/${todayStr}/total_count`] = 3;
-    mockLogs[`${LOGS_PATH}/${yesterdayStr}/total_offline_minutes`] = 60;
-    mockLogs[`${LOGS_PATH}/${yesterdayStr}/total_count`] = 4;
-    
-    await db.ref().update(mockLogs);
-    console.log("🎯 Charts and Top Cards database layers populated successfully!");
+    return date.toLocaleString("en-BD", { timeZone: "Asia/Dhaka" });
 }
 
-// সার্ভার চালু হওয়ার সাথে সাথে একবার ব্যাকগ্রাউন্ড লগ ইনজেক্ট করবে
-injectHistoricalData();
+async function injectMockLoadsheddingData() {
+    console.log("⏳ Injecting sequence logs to populate cards and bar charts...");
+    
+    const ref = db.ref(LOGS_PATH);
+    
+    // পূর্ববর্তী আবজাব ডেটা থাকলে তা ক্লিয়ার করে ফ্রেশ স্টেট তৈরি করবে
+    await ref.remove();
 
-// আপনার আগের সেই প্রতি ৩০ সেকেন্ডের লাইভ হার্টবিট লুপ
-setInterval(async () => {
-    const now = Date.now();
-    try {
-        await db.ref(NODE_PATH).update({
-            heartbeat: now,
-            status: "Online"
-        });
-        console.log(`🟢 Live Ping -> Time: ${now} | Dashboard Status: Online`);
-    } catch (error) {
-        console.error("❌ Sync Error:", error.message);
-    }
-}, 30000);
+    // 🎯 সিকুয়েন্সিয়াল ইভেন্ট লুপ: আপনার কোডের জন্য ৩ বার মক লোডশেডিংয়ের ঘটনা পুশ করলাম
+    // কাট ১: দুপুর ১২:০০ থেকে ১২:৩০ (৩০ মিনিট)
+    await ref.push({ time: getBDTimestampString(-2, 0), status: "Offline" });
+    await ref.push({ time: getBDTimestampString(-2, 30), status: "Online" });
+
+    // কাট ২: দুপুর ২:০০ থেকে ২:৪৫ (৪৫ মিনিট)
+    await ref.push({ time: getBDTimestampString(-1, 0), status: "Offline" });
+    await ref.push({ time: getBDTimestampString(-1, 45), status: "Online" });
+
+    // কাট ৩: বিকেল ৪:০০ থেকে ৪:১৫ (১৫ মিনিট)
+    await ref.push({ time: getBDTimestampString(0, -30), status: "Offline" });
+    await ref.push({ time: getBDTimestampString(0, -15), status: "Online" });
+
+    // বর্তমান লাইভ অবস্থা অনলাইন সেট করে দিলাম
+    await ref.push({ time: getBDTimestampString(0, 0), status: "Online" });
+
+    console.log("🎯 All Dashboard slots, Graphs, and Top Cards populated with 90 Minutes data!");
+}
+
+// স্ক্রিপ্ট চালু হওয়া মাত্রই পুরো হিস্ট্রি ডেটা ইনজেক্ট করবে
+injectMockLoadsheddingData();
