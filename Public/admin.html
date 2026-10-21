@@ -398,7 +398,11 @@
                                 if (lastKpmHeartbeatVal !== liveStatus.heartbeat) {
                                     window.lastKpmHeartbeatTime = Date.now();
                                     lastKpmHeartbeatVal = liveStatus.heartbeat;
-                                    window.isKpmOfflineForced = false; // চিপ জ্যান্ত থাকলে লক খুলে যাবে
+                                    
+                                     // 🛡️ মক সার্ভার অনলাইন ডাটা পাঠালে যেন জোর করে অফলাইন লকটি ভেঙে আবার ড্যাশবোর্ড সচল হতে পারে:
+                                    if (liveStatus.status === "Online" || liveStatus.status === "ONLINE") {
+                                        window.isKpmOfflineForced = false; 
+                                    }// চিপ জ্যান্ত থাকলে লক খুলে যাবে
                                 }
                             }
 
